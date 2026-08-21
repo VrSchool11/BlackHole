@@ -99,27 +99,6 @@ const randi = (a, b) => Math.floor(rand(a, b + 1));
 const pick  = arr => arr[(Math.random() * arr.length) | 0];
 const chance = p => Math.random() < p;
 
-// swap Math.random for a seeded one during init() so the daily challenge gets the same world
-function mulberry32(seed) {
-  let s = seed >>> 0;
-  return function () {
-    s = (s + 0x6D2B79F5) | 0;
-    let t = Math.imul(s ^ (s >>> 15), 1 | s);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-function dailySeed(dateKey) {
-  let h = 2166136261;
-  for (let i = 0; i < dateKey.length; i++) { h ^= dateKey.charCodeAt(i); h = Math.imul(h, 16777619); }
-  return h >>> 0;
-}
-function withSeededRandom(seed, fn) {
-  const orig = Math.random;
-  Math.random = mulberry32(seed);
-  try { fn(); } finally { Math.random = orig; }
-}
-
 
 const radiusFromMass = m => Math.sqrt(m / Math.PI);
 const massFromRadius = r => Math.PI * r * r;
@@ -675,7 +654,6 @@ class Game {
     this.powerupTimer = CFG.POWERUP.SPAWN_EVERY * 0.5;
     this.matchMode = "classic";
     this.matchEndAt = null;
-    this.dailyKey = null;
 
 
     this.gridCell = 400;
@@ -703,13 +681,6 @@ class Game {
     this.rebuildGrid();
   }
 
-  // only the layout is seeded, everything after is normal random play
-  initDaily(dateKey) {
-    this.dailyKey = dateKey;
-    withSeededRandom(dailySeed(dateKey), () => this.init());
-  }
-
-
   clearEntities() {
     this.food.length = 0;
     this.players.length = 0;
@@ -725,7 +696,6 @@ class Game {
     this.rogueTimer = 0;
     this.lastRogueAt = -999;
     this.powerupTimer = CFG.POWERUP.SPAWN_EVERY * 0.5;
-    this.dailyKey = null;
   }
 
   spawnBot(used) {

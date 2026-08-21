@@ -273,7 +273,6 @@
     cursor: pointer;
   }
   #roomtag b { color: var(--chalk); font-weight: 700; }
-  #daily-date { font-family: var(--mono); font-weight: 400; opacity: 0.7; margin-left: 4px; }
   #roomtag.gone { display: none; }
   .row { display: flex; gap: 14px; align-items: center; justify-content: center; flex-wrap: wrap; }
   .row input[type=text] { width: 150px; padding: 10px 12px; }
@@ -708,9 +707,6 @@
   <div class="row">
     <input type="text" id="room" maxlength="6" placeholder="STATION CODE" autocomplete="off" spellcheck="false" />
     <button id="join">JOIN STATION</button>
-  </div>
-  <div class="row">
-    <button id="daily">DAILY CHALLENGE <span id="daily-date"></span></button>
   </div>
   <div class="tint-row">
     <span class="tint-label">TINT</span>
@@ -1738,7 +1734,6 @@ class HUD {
     } else if (live && game.matchMode === "elimination") {
       matchText = "LAST STATION STANDING — " + (game.players.filter(p => !p.dead).length) + " LEFT";
     }
-    if (live && game.dailyKey) matchText = "DAILY " + game.dailyKey + (matchText ? " · " + matchText : "");
     this.match.textContent = matchText;
 
     const top = (game.ranked || game.players).slice(0, 7);
@@ -2301,7 +2296,7 @@ class PeerHost {
         tintSwatchesEl = $("tint-swatches"), qualityToggleEl = $("quality-toggle"),
         volumeSliderEl = $("volume-slider"), minimapToggleEl = $("minimap-toggle"),
         killstreakEl = $("killstreak"), tutorialEl = $("tutorial"), tutorialDismissEl = $("tutorial-dismiss"),
-        teamsToggleEl = $("teams-toggle"), dailyEl = $("daily"), dailyDateEl = $("daily-date");
+        teamsToggleEl = $("teams-toggle");
 
   let net = null;
   let host = null;
@@ -2407,33 +2402,6 @@ class PeerHost {
     g.matchMode = matchMode;
     g.matchEndAt = matchMode === "timed" ? g.time + CFG.MATCH.TIMED_DURATION : null;
   }
-
-  function todayKey() {
-    const d = new Date();
-    return d.getUTCFullYear() + "-" + String(d.getUTCMonth() + 1).padStart(2, "0") + "-" + String(d.getUTCDate()).padStart(2, "0");
-  }
-  dailyDateEl.textContent = todayKey();
-
-  function startDaily() {
-    audio.unlock();
-    audio.ui();
-    if (host) { host.close(); host = null; }
-    if (net) { net.close(); net = null; }
-    mode = "solo";
-    menuEl.classList.add("gone");
-    deathEl.classList.add("gone");
-    setPaused(false);
-    camera.hard = true;
-    game.clearEntities();
-    game.initDaily(todayKey());
-    armMatch(game);
-    game.spawnLocal(playerName(), localController);
-    game.local.color = myTint;
-    camera.x = game.local.x; camera.y = game.local.y;
-    setStatus("DAILY CHALLENGE — " + todayKey(), false);
-    maybeShowTutorial();
-  }
-  dailyEl.addEventListener("click", startDaily);
 
   function setPaused(v) {
     PAUSED = !!v;
