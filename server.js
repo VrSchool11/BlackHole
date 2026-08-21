@@ -1,5 +1,3 @@
-
-
 "use strict";
 
 const http = require("http");
@@ -11,9 +9,9 @@ const SIM = require("./sim.js");
 const { Game, Player, CFG, HUES } = SIM;
 
 const PORT = process.env.PORT || 8787;
-const TICK_MS = 1000 / 30;                     
-const MAX_PLAYERS = 12;                        
-const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";   
+const TICK_MS = 1000 / 30;                     // 30hz sim — snapshots go out every tick
+const MAX_PLAYERS = 12;
+const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";   // no 0/O, 1/I — room codes stay readable
 
 const rooms = new Map();
 
@@ -27,7 +25,6 @@ function genCode() {
 }
 
 
-
 function sanitizeName(raw) {
   return String(raw || "").replace(/[|<>]/g, "").trim().toUpperCase().slice(0, 12) || "PLAYER";
 }
@@ -35,13 +32,12 @@ function sanitizeName(raw) {
 class Room {
   constructor(code) {
     this.code = code;
-    this.game = new Game(null);                 
-    this.game.init();                           
-    this.members = new Map();                   
+    this.game = new Game(null);
+    this.game.init();
+    this.members = new Map();
     this.timer = setInterval(() => this.tick(), TICK_MS);
   }
 
-  
 
   addMember(ws, name) {
     if (this.game.players.length >= MAX_PLAYERS) return "full";
@@ -61,7 +57,6 @@ class Room {
     return { id: player.id, spawnTime: player.spawnTime };
   }
 
-  
 
   removeMember(ws) {
     const m = this.members.get(ws);
@@ -74,7 +69,7 @@ class Room {
     const m = this.members.get(ws);
     if (!m || !m.dead) return;
     const spot = this.game.safeSpawn(m.player);
-    m.player.reset(spot.x, spot.y);             
+    m.player.reset(spot.x, spot.y);
     m.player.spawnTime = this.game.time;
     m.dead = false;
     if (!this.game.players.includes(m.player)) this.game.players.push(m.player);
@@ -88,7 +83,6 @@ class Room {
     if (this.members.size === 0) this.destroy();
   }
 
-  
 
   processEvents() {
     const game = this.game;
@@ -111,7 +105,7 @@ class Room {
 
             if (victimIsMe) {
               m.dead = true;
-              const rank = game.rankOf(m.player);        
+              const rank = game.rankOf(m.player);
               m.player.bestRank = Math.min(m.player.bestRank, rank);
               this.send(ws, {
                 t: "e", kind: "death",
@@ -132,7 +126,6 @@ class Room {
     game.events.length = 0;
   }
 
-  
 
   broadcastSnapshots() {
     const game = this.game;
@@ -151,8 +144,14 @@ class Room {
       }
       for (const id of m.last.p.keys()) if (!seenP.has(id)) { m.last.p.delete(id); d.push(id); }
 
+      const gx = m.player.x, gy = m.player.y;
+      const viewR = Math.max(CFG.NET.VIEW_RADIUS, m.player.r * CFG.NET.VIEW_R_MUL);
+      const x0 = gx - viewR, x1 = gx + viewR, y0 = gy - viewR, y1 = gy + viewR;
+
+      // interest culling — only send what's near this player, keeps the host fast on big maps
       for (const fd of game.food) {
         if (fd.dead) continue;
+        if (fd.x < x0 || fd.x > x1 || fd.y < y0 || fd.y > y1) continue;
         seenF.add(fd.id);
         const enc = SIM.encodeFood(fd);
         const key = enc.join("|");
@@ -177,11 +176,8 @@ class Room {
 }
 
 
-
-
-
 const MIME = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".md": "text/plain" };
-const STATIC = new Set(["index.html", "sim.js", "CONTEXT.md"]);   
+const STATIC = new Set(["index.html", "sim.js", "CONTEXT.md"]);
 
 const server = http.createServer((req, res) => {
   let urlPath = decodeURIComponent((req.url || "/").split("?")[0]);
@@ -242,6 +238,7 @@ function handle(ws, msg) {
     if (m && !m.dead && m.player.controller) {
       m.player.controller.x = Number(msg.x) || 0;
       m.player.controller.y = Number(msg.y) || 0;
+      m.player.boost = !!msg.boost;
     }
   } else if (msg.t === "respawn") {
     if (ws.room) ws.room.respawn(ws);

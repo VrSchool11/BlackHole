@@ -4,54 +4,110 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
 <title>Blackhole.io</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@300;400;500&display=swap" rel="stylesheet" />
 <style>
-  /* my colors */
+  /* dark editorial — ink, bone, one ember */
   :root {
-    --bg: #0a0a14;
-    --panel: #141426;
-    --text: #e8f0ff;
-    --dim: #8b93a7;
-    --accent: #6ee87a;
-    --danger: #ff6b6b;
-    --good: #7dff9e;
-    --line: #2b3350;
+    --ink: oklch(0.10 0.015 250);
+    --ink-2: oklch(0.135 0.015 250);
+    --paper: oklch(0.95 0.008 90);
+    --dim: oklch(0.64 0.02 250);
+    --faint: oklch(0.46 0.015 250);
+    --line: oklch(0.30 0.02 250);
+    --line-soft: oklch(0.235 0.015 250);
+    --accent: oklch(0.78 0.13 65);
+    --accent-soft: oklch(0.78 0.13 65 / 0.12);
+    --danger: oklch(0.63 0.16 25);
+    --good: oklch(0.74 0.09 150);
+    --serif: "Instrument Serif", Georgia, serif;
+    --body: "Space Grotesk", system-ui, sans-serif;
+    --mono: "JetBrains Mono", ui-monospace, monospace;
+    --ease: cubic-bezier(0.22, 1, 0.36, 1);
   }
 
   html, body {
     margin: 0; padding: 0; width: 100%; height: 100%;
-    background: var(--bg);
+    background: var(--ink);
     overflow: hidden;
     cursor: crosshair;
-    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-family: var(--body);
   }
   #game { display: block; position: fixed; inset: 0; width: 100vw; height: 100vh; background: #000; }
 
+  /* film grain over everything, vignette under the UI */
+  #grain {
+    position: fixed; inset: -50%;
+    z-index: 999;
+    pointer-events: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='0.55'/%3E%3C/svg%3E");
+    opacity: 0.05;
+    animation: grain 8s steps(10) infinite;
+  }
+  @keyframes grain {
+    0%, 100% { transform: translate(0, 0); }
+    20% { transform: translate(-1.5%, 1%); }
+    40% { transform: translate(1%, -1.5%); }
+    60% { transform: translate(-1%, 1.5%); }
+    80% { transform: translate(1.5%, -1%); }
+  }
+  body::after {
+    content: "";
+    position: fixed; inset: 0;
+    z-index: 6;
+    pointer-events: none;
+    background: radial-gradient(ellipse at center, transparent 55%, oklch(0.05 0.01 250 / 0.55) 100%);
+  }
+
   #hud {
     position: fixed; top: 16px; left: 16px; z-index: 10;
-    font-size: 12px; line-height: 1.6;
+    font-family: var(--mono);
+    font-size: 11px; line-height: 1.8;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
     color: var(--dim);
+    font-feature-settings: "tnum" 1;
     pointer-events: none;
   }
-  #hud .k { color: var(--dim); opacity: 0.6; }
-  #hud .big { font-size: 16px; color: var(--text); letter-spacing: 2px; }
+  #hud .k { color: var(--faint); }
+  #hud .big { font-size: 16px; color: var(--paper); letter-spacing: 0.2em; }
+  #hud #live { display: flex; align-items: center; gap: 8px; color: var(--faint); margin-bottom: 8px; }
+  #hud #live .dot {
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: var(--accent);
+    animation: pulse-dot 3s var(--ease) infinite;
+  }
+  @keyframes pulse-dot {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.35; }
+  }
 
   #board {
     position: fixed; top: 16px; right: 16px; text-align: right; z-index: 10;
-    font-size: 12px; line-height: 1.7;
+    font-family: var(--mono);
+    font-size: 11px; line-height: 1.9;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
     color: var(--dim);
+    font-feature-settings: "tnum" 1;
     pointer-events: none;
   }
-  #board .board-header { color: var(--dim); opacity: 0.7; letter-spacing: 2px; margin-bottom: 4px; }
+  #board .board-header { color: var(--faint); letter-spacing: 0.26em; margin-bottom: 6px; }
   #board .me { color: var(--accent); }
 
   #feed {
     position: fixed; top: 150px; right: 16px; text-align: right; z-index: 10;
-    font-size: 11px; line-height: 1.9;
+    font-family: var(--mono);
+    font-size: 10px; line-height: 2;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
     color: var(--dim);
     pointer-events: none;
   }
-  #feed div { animation: feed-in 0.35s ease both; }
-  #feed .ate { color: var(--text); }
+  #feed div { animation: feed-in 0.5s var(--ease) both; }
+  #feed .ate { color: var(--paper); }
   #feed .mine { color: var(--accent); }
   #feed .victim { color: var(--danger); }
   @keyframes feed-in { from { opacity: 0; transform: translateX(14px); } to { opacity: 1; transform: none; } }
@@ -63,101 +119,158 @@
     gap: 16px; text-align: center;
     padding: 40px 0;
     overflow-y: auto;
-    background: radial-gradient(ellipse at center, rgba(0,0,0,0.55), rgba(0,0,0,0.85));
-    transition: opacity 0.4s ease;
+    background: radial-gradient(ellipse at center, oklch(0.10 0.015 250 / 0.72), oklch(0.07 0.01 250 / 0.92));
+    transition: opacity 0.5s var(--ease);
   }
-  .screen > * { text-shadow: 0 2px 12px rgba(0,0,0,0.9); }
   .screen.gone { opacity: 0; pointer-events: none; }
 
   h1 {
     margin: 0;
-    font-size: 48px;
+    font-family: var(--serif);
     font-weight: 400;
-    letter-spacing: 10px;
-    color: var(--text);
-    text-shadow: 0 0 20px rgba(110,232,122,0.3);
-    padding-left: 10px;
+    font-size: clamp(44px, 8vw, 72px);
+    line-height: 0.95;
+    letter-spacing: -0.015em;
+    color: var(--paper);
   }
-  .tagline { color: var(--dim); font-size: 13px; letter-spacing: 2px; line-height: 2; }
-  .stats { display: flex; gap: 32px; margin: 4px 0; }
+  h1 em {
+    font-style: italic;
+    color: var(--accent);
+  }
+  .tagline {
+    font-family: var(--body);
+    font-weight: 300;
+    color: var(--dim);
+    font-size: 13px;
+    letter-spacing: 0.3em;
+    line-height: 2.2;
+    text-transform: uppercase;
+  }
+  .stats { display: flex; gap: 40px; margin: 4px 0; }
   .divider { width: 200px; height: 1px; background: var(--line); }
 
   input[type=text] {
-    background: var(--panel);
+    background: var(--ink-2);
     border: 1px solid var(--line);
-    color: var(--text);
-    font-family: inherit;
-    font-size: 14px;
-    letter-spacing: 2px;
+    color: var(--paper);
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.24em;
     text-align: center;
     text-transform: uppercase;
     padding: 12px 16px;
     width: 230px;
-    border-radius: 4px;
+    border-radius: 2px;
     outline: none;
+    transition: border-color 0.25s var(--ease);
   }
   input[type=text]:focus { border-color: var(--accent); }
 
   button {
     background: transparent;
-    border: 1px solid var(--accent);
-    color: var(--accent);
-    font-family: inherit;
-    font-size: 15px;
-    letter-spacing: 3px;
+    border: 1px solid var(--line);
+    color: var(--dim);
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.26em;
+    text-transform: uppercase;
     padding: 12px 28px;
-    border-radius: 8px;
+    border-radius: 2px;
     cursor: pointer;
-    transition: background 0.15s ease, transform 0.1s ease;
+    transition: color 0.25s var(--ease), border-color 0.25s var(--ease), background 0.25s var(--ease), transform 0.15s var(--ease);
   }
-  button:hover { background: rgba(110,232,122,0.1); }
-  button:active { transform: scale(0.97); }
+  button:hover { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
+  button:active { transform: scale(0.98); }
 
-  #death h1 { color: var(--danger); text-shadow: 0 0 20px rgba(255,107,107,0.3); }
-  #death .killer { font-size: 14px; letter-spacing: 2px; color: var(--dim); }
-  #death .killer b { color: var(--text); font-weight: 400; }
+  #death h1 { color: var(--danger); }
+  #death h1 em { color: var(--danger); }
+  #death .killer {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.26em;
+    text-transform: uppercase;
+    color: var(--dim);
+  }
+  #death .killer b {
+    font-family: var(--serif);
+    font-style: italic;
+    font-weight: 400;
+    font-size: 18px;
+    letter-spacing: 0.02em;
+    color: var(--paper);
+  }
 
   .stat { min-width: 84px; }
-  .stat .v { font-size: 22px; color: var(--text); letter-spacing: 1px; }
-  .stat .l { font-size: 10px; color: var(--dim); letter-spacing: 2px; margin-top: 4px; }
-  .hint { font-size: 10px; color: var(--dim); opacity: 0.6; letter-spacing: 2px; }
+  .stat .v {
+    font-family: var(--mono);
+    font-size: 24px;
+    font-weight: 500;
+    color: var(--paper);
+    letter-spacing: 0.02em;
+    font-feature-settings: "tnum" 1;
+  }
+  .stat .l {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--faint);
+    letter-spacing: 0.22em;
+    margin-top: 4px;
+  }
+  .hint { font-size: 10px; color: var(--faint); letter-spacing: 0.22em; }
 
   #sound {
     position: fixed; bottom: 16px; left: 16px; z-index: 12;
-    font-size: 11px; letter-spacing: 2px; color: var(--dim);
-    border: 1px solid var(--line); padding: 8px 12px; border-radius: 4px;
+    font-family: var(--mono);
+    font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase;
+    color: var(--dim);
+    border: 1px solid var(--line); padding: 8px 12px; border-radius: 2px;
     cursor: pointer; background: transparent;
-    transition: color 0.15s ease, border-color 0.15s ease;
+    transition: color 0.25s var(--ease), border-color 0.25s var(--ease);
   }
   #sound:hover { color: var(--accent); border-color: var(--accent); }
   #sound.off { color: var(--danger); border-color: var(--danger); }
 
   #roomtag {
     position: fixed; top: 16px; left: 50%; transform: translateX(-50%); z-index: 11;
-    font-size: 12px; letter-spacing: 3px; color: var(--accent);
-    padding: 8px 16px; border: 1px solid rgba(110,232,122,0.4); border-radius: 4px;
-    background: var(--panel);
+    font-family: var(--mono);
+    font-size: 11px; letter-spacing: 0.26em;
+    text-transform: uppercase;
+    color: var(--accent);
+    padding: 8px 16px;
+    border: 1px solid oklch(0.78 0.13 65 / 0.35);
+    border-radius: 2px;
+    background: var(--ink-2);
     cursor: pointer;
   }
-  #roomtag b { color: var(--text); }
+  #roomtag b { color: var(--paper); font-weight: 500; }
   #roomtag.gone { display: none; }
   .row { display: flex; gap: 16px; align-items: center; justify-content: center; flex-wrap: wrap; }
   .row input[type=text] { width: 150px; padding: 10px 12px; }
-  .status { min-height: 16px; font-size: 11px; letter-spacing: 2px; color: var(--dim); }
+  .status {
+    min-height: 16px;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--dim);
+  }
   .status.err { color: var(--danger); }
 
   .token-balance-display {
     padding: 8px 20px;
-    border: 1px solid rgba(110,232,122,0.4);
-    border-radius: 4px;
-    font-size: 13px;
-    letter-spacing: 2px;
+    border: 1px solid oklch(0.78 0.13 65 / 0.35);
+    border-radius: 2px;
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
     color: var(--accent);
-    background: var(--panel);
+    font-feature-settings: "tnum" 1;
+    background: var(--ink-2);
   }
   .token-balance-display b {
-    color: var(--text);
-    font-weight: 400;
+    color: var(--paper);
+    font-weight: 500;
   }
 
   .shop-container,
@@ -169,14 +282,16 @@
   .quest-summary {
     padding: 8px 12px;
     border: 1px solid var(--line);
-    border-radius: 4px;
-    font-size: 12px;
-    letter-spacing: 2px;
-    color: var(--text);
-    background: var(--panel);
+    border-radius: 2px;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--paper);
+    background: var(--ink-2);
     cursor: pointer;
     list-style: none;
-    transition: border-color 0.15s ease;
+    transition: border-color 0.25s var(--ease);
   }
   .shop-summary::-webkit-details-marker,
   .quest-summary::-webkit-details-marker {
@@ -194,24 +309,26 @@
     margin-top: 8px;
     padding: 6px 12px;
     border: 1px solid var(--line);
-    border-radius: 4px;
+    border-radius: 2px;
     max-height: 34vh;
     overflow-y: auto;
-    background: var(--panel);
+    background: var(--ink-2);
   }
 
   .shop-category-name {
     margin: 10px 4px 4px;
+    font-family: var(--mono);
     font-size: 10px;
-    letter-spacing: 2px;
-    color: var(--dim);
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--faint);
   }
   .shop-item {
     display: flex;
     align-items: center;
     gap: 12px;
     padding: 7px 4px;
-    border-bottom: 1px solid var(--line);
+    border-bottom: 1px solid var(--line-soft);
   }
   .shop-item:last-child {
     border-bottom: none;
@@ -219,32 +336,37 @@
   .shop-item-name {
     flex: 1;
     text-align: left;
-    font-size: 12px;
-    letter-spacing: 1px;
-    color: var(--text);
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--paper);
   }
   .shop-item-cost {
-    font-size: 11px;
+    font-family: var(--mono);
+    font-size: 10px;
     color: var(--accent);
     white-space: nowrap;
+    font-feature-settings: "tnum" 1;
   }
   .shop-item .shop-item-action {
     padding: 8px 14px;
-    font-size: 11px;
-    letter-spacing: 2px;
+    font-size: 10px;
+    letter-spacing: 0.2em;
   }
   .shop-item-action-equipped {
     border-color: var(--line);
-    color: var(--dim);
+    color: var(--faint);
     cursor: default;
   }
   .shop-item-action-equipped:hover {
     background: transparent;
+    color: var(--faint);
   }
 
   .quest-entry {
     padding: 8px 4px;
-    border-bottom: 1px solid var(--line);
+    border-bottom: 1px solid var(--line-soft);
   }
   .quest-entry:last-child {
     border-bottom: none;
@@ -256,39 +378,50 @@
     gap: 10px;
   }
   .quest-name {
-    font-size: 12px;
-    letter-spacing: 1px;
-    color: var(--text);
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--paper);
   }
   .quest-reward {
-    font-size: 11px;
+    font-family: var(--mono);
+    font-size: 10px;
     color: var(--accent);
     white-space: nowrap;
   }
   .quest-desc {
     margin-top: 3px;
     font-size: 11px;
+    font-weight: 300;
     color: var(--dim);
   }
   .quest-progress {
     margin-top: 5px;
-    font-size: 11px;
+    font-family: var(--mono);
+    font-size: 10px;
     color: var(--dim);
+    font-feature-settings: "tnum" 1;
   }
   .quest-status {
     margin-top: 4px;
-    font-size: 10px;
-    letter-spacing: 2px;
-    color: var(--dim);
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--faint);
   }
   .quest-status-done {
     color: var(--good);
   }
 
   .run-reward {
-    font-size: 14px;
-    letter-spacing: 2px;
-    color: var(--text);
+    font-family: var(--mono);
+    font-size: 13px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--paper);
+    font-feature-settings: "tnum" 1;
   }
   .plinko-section {
     display: flex;
@@ -300,21 +433,25 @@
     display: none;
   }
   .plinko-title {
-    font-size: 12px;
-    letter-spacing: 3px;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.26em;
+    text-transform: uppercase;
     color: var(--accent);
   }
   .plinko-canvas {
     max-width: min(92vw, 560px);
     height: auto;
     border: 1px solid var(--line);
-    border-radius: 6px;
-    background: var(--bg);
+    border-radius: 2px;
+    background: var(--ink);
   }
   .plinko-status {
     min-height: 16px;
-    font-size: 13px;
-    letter-spacing: 2px;
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
     color: var(--good);
   }
   #plinko-skip {
@@ -322,21 +459,32 @@
     color: var(--dim);
   }
   #plinko-skip:hover {
-    background: rgba(139,147,167,0.1);
+    background: oklch(0.64 0.02 250 / 0.1);
+    color: var(--paper);
   }
   #plinko-return {
     border-color: var(--good);
     color: var(--good);
   }
   #plinko-return:hover {
-    background: rgba(125,255,158,0.1);
+    background: oklch(0.74 0.09 150 / 0.1);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.001s !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001s !important;
+    }
   }
 </style>
 </head>
 <body>
 <canvas id="game"></canvas>
+<div id="grain" aria-hidden="true"></div>
 
 <div id="hud">
+  <div id="live"><span class="dot"></span>FIELD LIVE</div>
   <div class="big">MASS <span id="ui-mass">0</span></div>
   <div><span class="k">X</span> <span id="ui-x">0</span> &nbsp; <span class="k">Y</span> <span id="ui-y">0</span></div>
   <div><span class="k">FPS</span> <span id="ui-fps">0</span> &nbsp; <span class="k">ENT</span> <span id="ui-ent">0</span></div>
@@ -351,7 +499,7 @@
 
 <div id="sound">SOUND ON</div>
 <div id="roomtag" class="gone">ROOM <b id="room-code">—</b> · TAP TO COPY</div><div class="screen" id="menu">
-  <h1>BLACKHOLE</h1>
+  <h1>BLACK<em>HOLE</em></h1>
   <div class="divider"></div>
   <div class="tagline">SWALLOW DUST. THEN ASTEROIDS. THEN PLANETS.<br>THEN EVERYONE ELSE.</div>
   <input type="text" id="name" maxlength="12" placeholder="YOUR NAME" autocomplete="off" spellcheck="false" />
@@ -373,9 +521,9 @@
     <div class="quest-log" id="quest-log"></div>
   </details>
   <div class="status" id="status"></div>
-  <div class="hint">MOVE WITH THE MOUSE</div>
+  <div class="hint">MOVE WITH THE MOUSE · HOLD SHIFT TO BOOST</div>
 </div><div class="screen gone" id="death">
-  <h1>DEVOURED</h1>
+  <h1>DEV<em>OURED</em></h1>
   <div class="killer">BY <b id="d-killer">—</b></div>
   <div class="divider"></div>
   <div class="stats">
@@ -413,10 +561,8 @@
 <script>
 "use strict";
 
-
-let PROG = null;    
-let PAUSED = false; 
-
+let PROG = null;
+let PAUSED = false;
 
 
 class GameAudio {
@@ -424,10 +570,9 @@ class GameAudio {
     this.ctx = null;
     this.enabled = true;
     this.ready = false;
-    this.lastAbsorb = 0;     
+    this.lastAbsorb = 0;
   }
 
-  
 
   unlock() {
     if (this.ready) return;
@@ -440,7 +585,7 @@ class GameAudio {
     this.master.gain.value = 0.9;
     this.master.connect(c.destination);
 
-    
+
     this.bus = c.createDynamicsCompressor();
     this.bus.threshold.value = -18;
     this.bus.ratio.value = 5;
@@ -448,8 +593,7 @@ class GameAudio {
     this.bus.release.value = 0.22;
     this.bus.connect(this.master);
 
-    
-    
+
     const len = c.sampleRate * 2;
     this.noise = c.createBuffer(1, len, c.sampleRate);
     const d = this.noise.getChannelData(0);
@@ -467,7 +611,6 @@ class GameAudio {
     if (this.ready) this.master.gain.setTargetAtTime(v ? 0.9 : 0, this.t, 0.05);
   }
 
-  
 
   startAmbience() {
     const c = this.ctx, t = this.t;
@@ -478,7 +621,7 @@ class GameAudio {
       const o = c.createOscillator();
       o.type = "sine"; o.frequency.value = f * (i ? 1.003 : 1);
       const og = c.createGain(); og.gain.value = i ? 0.35 : 0.5;
-      
+
       const lfo = c.createOscillator(); lfo.frequency.value = 0.05 + i * 0.03;
       const lg = c.createGain(); lg.gain.value = 0.22;
       lfo.connect(lg); lg.connect(og.gain); lfo.start();
@@ -494,33 +637,31 @@ class GameAudio {
     this.ambientGain = g;
   }
 
-  
 
   atten(dist, viewRadius) {
     if (dist == null) return 1;
     return clamp(1 - dist / (viewRadius * 1.9), 0, 1);
   }
 
-  
 
   absorb(victimRadius, dist, viewRadius, isPlayerKill) {
     if (!this.on) return;
     const now = this.t;
-    
+
     if (victimRadius < 8 && now - this.lastAbsorb < 0.028) return;
     this.lastAbsorb = now;
 
     const c = this.ctx;
-    const size = clamp(victimRadius / 60, 0.02, 1.6);        
+    const size = clamp(victimRadius / 60, 0.02, 1.6);
     const vol = this.atten(dist, viewRadius) * (0.16 + size * 0.55) * (isPlayerKill ? 1.5 : 1);
     if (vol < 0.006) return;
 
     const dur = 0.10 + size * 0.55;
-    
+
     const f0 = 480 / (0.35 + size * 1.7);
     const f1 = f0 * 0.28;
 
-    
+
     const o = c.createOscillator();
     o.type = size > 0.5 ? "sine" : "triangle";
     o.frequency.setValueAtTime(f0, now);
@@ -532,7 +673,7 @@ class GameAudio {
     o.connect(og); og.connect(this.bus);
     o.start(now); o.stop(now + dur + 0.05);
 
-    
+
     const n = c.createBufferSource();
     n.buffer = this.noise;
     n.playbackRate.value = rand(0.8, 1.25);
@@ -547,7 +688,7 @@ class GameAudio {
     n.connect(nf); nf.connect(ng); ng.connect(this.bus);
     n.start(now); n.stop(now + dur + 0.05);
 
-    
+
     if (size > 0.35) {
       const s = c.createOscillator();
       s.type = "sine";
@@ -562,7 +703,6 @@ class GameAudio {
     }
   }
 
-  
 
   danger() {
     if (!this.on) return;
@@ -580,7 +720,6 @@ class GameAudio {
     o.start(now); o.stop(now + 0.65);
   }
 
-  
 
   death() {
     if (!this.on) return;
@@ -617,7 +756,6 @@ class GameAudio {
     n.start(now); n.stop(now + 2.1);
   }
 
-  
 
   spawn() {
     if (!this.on) return;
@@ -648,24 +786,20 @@ class GameAudio {
 }
 
 
-
-
-
 class LocalMouseController {
   constructor(input, camera) { this.input = input; this.camera = camera; }
   update(player) {
-    
+    player.boost = this.input.boost;
     if (PAUSED) return;
 
     const k = this.input.keys;
     if (k.up || k.down || k.left || k.right) {
-      
-      
-      
+
+
       const dx = (k.right ? 1 : 0) - (k.left ? 1 : 0);
       const dy = (k.down ? 1 : 0) - (k.up ? 1 : 0);
       const d = Math.hypot(dx, dy) || 1;
-      const reach = 320 + player.r * 1.8;   
+      const reach = 320 + player.r * 1.8;   // far enough to clear the settle deadzone
       player.intentX = player.x + (dx / d) * reach;
       player.intentY = player.y + (dy / d) * reach;
       return;
@@ -673,11 +807,10 @@ class LocalMouseController {
 
     const p = this.camera.screenToWorld(this.input.mx, this.input.my);
     player.intentX = p.x; player.intentY = p.y;
-    
-    
+
+
   }
 }
-
 
 
 class Input {
@@ -685,12 +818,14 @@ class Input {
     this.mx = window.innerWidth / 2;
     this.my = window.innerHeight / 2;
     this.moved = false;
-    
+    this.boost = false;
     this.keys = { up: false, down: false, left: false, right: false };
     const set = (x, y) => { this.mx = x; this.my = y; this.moved = true; };
     window.addEventListener("mousemove", e => set(e.clientX, e.clientY), { passive: true });
     window.addEventListener("touchstart", e => { const t = e.touches[0]; if (t) set(t.clientX, t.clientY); }, { passive: true });
     window.addEventListener("touchmove",  e => { const t = e.touches[0]; if (t) set(t.clientX, t.clientY); }, { passive: true });
+    window.addEventListener("mousedown", e => { if (e.button === 0) this.boost = true; });
+    window.addEventListener("mouseup", e => { if (e.button === 0) this.boost = false; });
 
     const keyMap = {
       ArrowUp: "up", KeyW: "up",
@@ -702,22 +837,30 @@ class Input {
       const a = document.activeElement;
       return !!(a && (a.tagName === "INPUT" || a.tagName === "TEXTAREA"));
     };
+    const isBoostKey = e => e.code === "Space" || e.code === "ShiftLeft" || e.code === "ShiftRight";
     window.addEventListener("keydown", e => {
+      if (isBoostKey(e)) {
+        if (typing()) return;
+        e.preventDefault();
+        this.boost = true;
+        return;
+      }
       const k = keyMap[e.code];
       if (!k || typing()) return;
-      e.preventDefault();                
+      e.preventDefault();
       this.keys[k] = true;
     });
     window.addEventListener("keyup", e => {
+      if (isBoostKey(e)) { this.boost = false; return; }
       const k = keyMap[e.code];
       if (k) this.keys[k] = false;
     });
-    window.addEventListener("blur", () => {   
+    window.addEventListener("blur", () => {
       this.keys.up = this.keys.down = this.keys.left = this.keys.right = false;
+      this.boost = false;
     });
   }
 }
-
 
 
 class Camera {
@@ -726,14 +869,14 @@ class Camera {
     this.zoom = 1; this.targetZoom = 1;
     this.vw = window.innerWidth; this.vh = window.innerHeight;
     this.shake = 0; this.shx = 0; this.shy = 0;
-    this.hard = true;         
+    this.hard = true;
   }
   resize(w, h) { this.vw = w; this.vh = h; }
 
   follow(target, dt) {
     if (!target) return;
     if (this.hard) { this.x = target.x; this.y = target.y; }
-    else {          
+    else {
       this.x = damp(this.x, target.x, 2.2, dt);
       this.y = damp(this.y, target.y, 2.2, dt);
     }
@@ -760,7 +903,6 @@ class Camera {
 }
 
 
-
 class Renderer {
   constructor(canvas, camera) {
     this.canvas = canvas;
@@ -774,8 +916,12 @@ class Renderer {
   }
 
   resize() {
-    this.dpr = Math.min(window.devicePixelRatio || 1, 2);   
-    const w = window.innerWidth, h = window.innerHeight;
+    this.dpr = Math.min(window.devicePixelRatio || 1, 2);
+    let w = window.innerWidth, h = window.innerHeight;
+    if (!w || !h) {                       // not laid out yet — use the document box
+      w = document.documentElement.clientWidth;
+      h = document.documentElement.clientHeight;
+    }
     this.canvas.width = Math.floor(w * this.dpr);
     this.canvas.height = Math.floor(h * this.dpr);
     this.canvas.style.width = w + "px";
@@ -800,21 +946,19 @@ class Renderer {
       }
       return { pts, speed: layer.speed, tile: TILE };
     });
-  }
-
-  draw(game) {
+  }  draw(game) {
+    if (!this.canvas.width || !this.canvas.height) this.resize();   // heal a 0x0 canvas
     const ctx = this.ctx, cam = this.camera;
 
-    
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.globalCompositeOperation = "source-over";
     ctx.fillStyle = "rgba(2, 2, 8, " + CFG.RENDER.TRAIL_FADE + ")";
     ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
-    
+
     this.drawStars(game.time);
 
-    
+
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
     ctx.translate(cam.vw / 2 + cam.shx, cam.vh / 2 + cam.shy);
     ctx.scale(cam.zoom, cam.zoom);
@@ -833,13 +977,14 @@ class Renderer {
       if (e.x < vb.x0 || e.x > vb.x1 || e.y < vb.y0 || e.y > vb.y1) continue;
       if (e.type === "asteroid") this.drawAsteroid(ctx, e);
       else if (e.type === "planet") this.drawPlanet(ctx, e);
+      else if (e.type === "rogue") this.drawRogue(ctx, e, game.time);
     }
 
     ctx.globalCompositeOperation = "lighter";
     for (const p of game.particles) this.drawParticle(ctx, p);
     ctx.globalCompositeOperation = "source-over";
 
-    const holes = game.players.slice().sort((a, b) => a.r - b.r);   
+    const holes = game.players.slice().sort((a, b) => a.r - b.r);
     for (const p of holes) this.drawBlackHole(ctx, p, game.time);
 
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
@@ -847,7 +992,6 @@ class Renderer {
     this.drawMinimap(ctx, game);
   }
 
-  
 
   drawStars(time) {
     const ctx = this.ctx, cam = this.camera;
@@ -896,11 +1040,10 @@ class Renderer {
     const tw = 0.65 + 0.35 * Math.sin(time * 3.1 + e.twinkle);
     ctx.save();
     ctx.translate(e.x, e.y);
-    ctx.rotate(e.stretchAng);                    
-    ctx.scale(e.stretch, 1 / Math.sqrt(e.stretch));   
+    ctx.rotate(e.stretchAng);
+    ctx.scale(e.stretch, 1 / Math.sqrt(e.stretch));
     ctx.globalAlpha = 0.9 * tw;
     ctx.fillStyle = e.tint;
-    ctx.shadowBlur = 12; ctx.shadowColor = e.tint;
     ctx.beginPath(); ctx.arc(0, 0, e.r, 0, TAU); ctx.fill();
     ctx.globalAlpha = 0.28 * tw;
     ctx.beginPath(); ctx.arc(0, 0, e.r * 2.6, 0, TAU); ctx.fill();
@@ -913,7 +1056,7 @@ class Renderer {
     ctx.translate(e.x, e.y);
     ctx.rotate(e.stretchAng);
     ctx.scale(e.stretch, 1 / Math.sqrt(e.stretch));
-    ctx.rotate(e.angle - e.stretchAng);          
+    ctx.rotate(e.angle - e.stretchAng);
 
     const n = e.lumps.length;
     ctx.beginPath();
@@ -931,11 +1074,11 @@ class Renderer {
     ctx.lineWidth = Math.max(0.6, e.r * 0.07);
     ctx.stroke();
 
-    if (e.stretch > 1.25) {                      
+    if (e.stretch > 1.25) {
       ctx.globalCompositeOperation = "lighter";
       ctx.globalAlpha = clamp((e.stretch - 1.25) / 2.6, 0, 0.85);
       ctx.strokeStyle = "#ffb06a";
-      ctx.shadowBlur = 18; ctx.shadowColor = "#ff8a3a";
+      ctx.shadowBlur = 10; ctx.shadowColor = "#ff8a3a";
       ctx.stroke();
     }
     ctx.restore();
@@ -964,7 +1107,7 @@ class Renderer {
     ctx.fillStyle = g;
     ctx.beginPath(); ctx.arc(0, 0, e.r, 0, TAU); ctx.fill();
 
-    ctx.save();                                   
+    ctx.save();
     ctx.beginPath(); ctx.arc(0, 0, e.r, 0, TAU); ctx.clip();
     ctx.rotate(e.angle);
     ctx.globalAlpha = 0.16; ctx.fillStyle = e.pal[2];
@@ -972,7 +1115,7 @@ class Renderer {
     ctx.restore();
 
     ctx.globalAlpha = 1;
-    ctx.globalCompositeOperation = "lighter";     
+    ctx.globalCompositeOperation = "lighter";
     const ag = ctx.createRadialGradient(0, 0, e.r * 0.88, 0, 0, e.r * 1.3);
     ag.addColorStop(0, "rgba(0,0,0,0)");
     ag.addColorStop(0.55, "rgba(150,200,255,0.16)");
@@ -984,32 +1127,77 @@ class Renderer {
     ctx.globalAlpha = 1;
   }
 
+  drawRogue(ctx, e, time) {
+    const r = e.r, pulse = 1 + 0.12 * Math.sin(time * 2.6 + e.id);
+    ctx.save();
+    ctx.globalCompositeOperation = "lighter";
+    const halo = ctx.createRadialGradient(e.x, e.y, r * 0.8, e.x, e.y, r * 3.2);
+    halo.addColorStop(0, this.rgba(e.tint, 0.35));
+    halo.addColorStop(0.5, this.rgba(e.tint, 0.10));
+    halo.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = halo;
+    ctx.beginPath(); ctx.arc(e.x, e.y, r * 3.2, 0, TAU); ctx.fill();
+    ctx.restore();
+
+    ctx.save();
+    ctx.globalAlpha = 0.55 + 0.35 * (pulse - 1) * 4;
+    ctx.strokeStyle = e.tint;
+    ctx.lineWidth = Math.max(1.5, r * 0.05);
+    ctx.setLineDash([r * 0.6, r * 0.35]);
+    ctx.lineDashOffset = -time * r * 0.8;
+    ctx.beginPath(); ctx.arc(e.x, e.y, r * 1.5 + (pulse - 1) * r * 2, 0, TAU); ctx.stroke();
+    ctx.restore();
+
+    ctx.save();
+    ctx.fillStyle = "#16040a";
+    ctx.beginPath(); ctx.arc(e.x, e.y, r, 0, TAU); ctx.fill();
+    ctx.restore();
+
+    ctx.save();
+    ctx.translate(e.x, e.y);
+    ctx.rotate(time * 1.2 + e.id);
+    ctx.globalCompositeOperation = "lighter";
+    ctx.strokeStyle = e.tint;
+    ctx.lineWidth = Math.max(1.2, r * 0.09);
+    ctx.globalAlpha = 0.85;
+    for (let k = 0; k < 3; k++) {
+      const a0 = k * TAU / 3;
+      ctx.beginPath(); ctx.arc(0, 0, r * 1.25, a0, a0 + 1.2); ctx.stroke();
+    }
+    ctx.restore();
+
+    ctx.save();
+    const fs = Math.max(12 / this.camera.zoom, r * 0.3);
+    ctx.font = "700 " + fs.toFixed(1) + "px ui-monospace, Menlo, monospace";
+    ctx.textAlign = "center";
+    ctx.fillStyle = "#ff8a9a";
+    ctx.fillText("\u26A0 " + e.name, e.x, e.y + r + fs * 1.3);
+    ctx.restore();
+  }
+
   drawParticle(ctx, p) {
     const t = p.life / p.maxLife;
     ctx.globalAlpha = t * t;
     ctx.fillStyle = p.color;
-    ctx.shadowBlur = 14; ctx.shadowColor = p.color;
     ctx.beginPath(); ctx.arc(p.x, p.y, p.size * (0.35 + t * 0.65), 0, TAU); ctx.fill();
-    ctx.globalAlpha = 1; ctx.shadowBlur = 0;
+    ctx.globalAlpha = 1;
   }
 
-  
 
   drawBlackHole(ctx, p, time) {
     const r = p.r;
     const pulse = 1 + 0.055 * Math.sin(p.pulse * 1.6) + 0.03 * Math.sin(p.pulse * 3.7);
 
-    
+
     const cos = (p.isLocal && PROG) ? PROG.equippedColors() : null;
     const diskColor = (cos && cos.disk) || p.color;
     const ringColor = (cos && cos.trail) || "#ffffff";
     const orbColor = (cos && cos.orb) || null;
-    
-    
-    
+
+
     const tint = diskColor;
 
-    
+
     ctx.save();
     ctx.globalCompositeOperation = "lighter";
     const haloR = r * 6.2;
@@ -1022,7 +1210,7 @@ class Renderer {
     ctx.beginPath(); ctx.arc(p.x, p.y, haloR, 0, TAU); ctx.fill();
     ctx.restore();
 
-    
+
     const tr = p.trail;
     if (tr.length >= 6) {
       ctx.save();
@@ -1041,7 +1229,7 @@ class Renderer {
       ctx.restore();
     }
 
-    
+
     ctx.save();
     ctx.translate(p.x, p.y);
     ctx.globalCompositeOperation = "lighter";
@@ -1054,10 +1242,10 @@ class Renderer {
     disk.addColorStop(0.70, "rgba(120,70,220,0.16)");
     disk.addColorStop(1.00, "rgba(0,0,0,0)");
     ctx.fillStyle = disk;
-    ctx.shadowBlur = clamp(r * 1.6, 18, 40); ctx.shadowColor = tint;   
+    ctx.shadowBlur = clamp(r * 1.1, 10, 26); ctx.shadowColor = tint;
     ctx.beginPath(); ctx.arc(0, 0, diskR, 0, TAU); ctx.fill();
 
-    ctx.shadowBlur = clamp(r * 0.9, 10, 40);      
+    ctx.shadowBlur = clamp(r * 0.6, 6, 22);
     for (let k = 0; k < 2; k++) {
       const a0 = k * Math.PI + Math.sin(time * 0.7 + k) * 0.25;
       ctx.globalAlpha = 0.42;
@@ -1068,16 +1256,16 @@ class Renderer {
     ctx.globalAlpha = 1;
     ctx.restore();
 
-    
+
     ctx.save();
     ctx.globalCompositeOperation = "lighter";
     ctx.strokeStyle = ringColor; ctx.globalAlpha = 0.85;
     ctx.lineWidth = Math.max(0.8, r * 0.055);
-    ctx.shadowBlur = clamp(r * 1.1, 12, 40); ctx.shadowColor = tint;
+    ctx.shadowBlur = clamp(r * 0.8, 8, 26); ctx.shadowColor = tint;
     ctx.beginPath(); ctx.arc(p.x, p.y, r * 1.045, 0, TAU); ctx.stroke();
     ctx.restore();
 
-    
+
     if (orbColor) {
       ctx.save();
       ctx.globalCompositeOperation = "lighter";
@@ -1092,7 +1280,7 @@ class Renderer {
       ctx.restore();
     }
 
-    
+
     ctx.save();
     ctx.globalCompositeOperation = "source-over";
     ctx.fillStyle = "#000000";
@@ -1103,7 +1291,7 @@ class Renderer {
     ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, TAU); ctx.fill();
     ctx.restore();
 
-    
+
     if (p.eatFlash > 0.01) {
       ctx.save();
       ctx.globalCompositeOperation = "lighter";
@@ -1111,12 +1299,12 @@ class Renderer {
       ctx.globalAlpha = p.eatFlash * 0.7;
       ctx.strokeStyle = "#ffffff";
       ctx.lineWidth = Math.max(1, r * 0.16 * p.eatFlash);
-      ctx.shadowBlur = 30; ctx.shadowColor = tint;
+      ctx.shadowBlur = 20; ctx.shadowColor = tint;
       ctx.beginPath(); ctx.arc(p.x, p.y, r * (1.1 + f * 2.4), 0, TAU); ctx.stroke();
       ctx.restore();
     }
 
-    
+
     if (p.shield > 0) {
       ctx.save();
       ctx.globalCompositeOperation = "lighter";
@@ -1126,12 +1314,12 @@ class Renderer {
       ctx.lineWidth = Math.max(1, r * 0.10);
       ctx.setLineDash([r * 0.55, r * 0.4]);
       ctx.lineDashOffset = -time * r * 1.4;
-      ctx.shadowBlur = 22; ctx.shadowColor = "#5aa0ff";
+      ctx.shadowBlur = 16; ctx.shadowColor = "#5aa0ff";
       ctx.beginPath(); ctx.arc(p.x, p.y, r * 2.0, 0, TAU); ctx.stroke();
       ctx.restore();
     }
 
-    
+
     ctx.save();
     const fs = Math.max(11 / this.camera.zoom, r * 0.42);
     ctx.font = "500 " + fs.toFixed(1) + "px ui-monospace, Menlo, monospace";
@@ -1152,7 +1340,6 @@ class Renderer {
     ctx.fillRect(0, 0, w, h);
   }
 
-  
 
   drawMinimap(ctx, game) {
     const S = 132, pad = 16;
@@ -1167,7 +1354,7 @@ class Renderer {
     ctx.lineWidth = 1;
     ctx.strokeRect(x0 + 0.5, y0 + 0.5, S - 1, S - 1);
 
-    for (const e of game.food) {                  
+    for (const e of game.food) {
       if (e.type !== "planet") continue;
       ctx.fillStyle = "rgba(150,180,220,0.5)";
       ctx.beginPath(); ctx.arc(x0 + e.x * k, y0 + e.y * k, 1.8, 0, TAU); ctx.fill();
@@ -1181,7 +1368,7 @@ class Renderer {
       ctx.fill();
     }
 
-    ctx.globalAlpha = 0.55;                        
+    ctx.globalAlpha = 0.55;
     const vb = this.camera.viewBounds(0);
     ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 1;
     ctx.strokeRect(x0 + vb.x0 * k, y0 + vb.y0 * k, (vb.x1 - vb.x0) * k, (vb.y1 - vb.y0) * k);
@@ -1196,9 +1383,6 @@ class Renderer {
 }
 
 
-
-
-
 class HUD {
   constructor() {
     const $ = id => document.getElementById(id);
@@ -1211,7 +1395,7 @@ class HUD {
 
   update(game, fps, dt) {
     this.acc += dt;
-    if (this.acc < 0.1) return;                    
+    if (this.acc < 0.1) return;
     this.acc = 0;
 
     const me = game.local;
@@ -1242,7 +1426,6 @@ class HUD {
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
 
-
 class NetworkController {
   constructor(game, name) {
     this.game = game;
@@ -1256,9 +1439,9 @@ class NetworkController {
     this.closed = false;
     this.mySpawnTime = 0;
 
-    this.buffer = [];               
-    this.current = new Map();       
-    this.entities = new Map();      
+    this.buffer = [];
+    this.current = new Map();
+    this.entities = new Map();
     this.lastIntentAt = 0;
 
     this.onjoined = null;
@@ -1266,7 +1449,6 @@ class NetworkController {
     this.ondisconnect = null;
   }
 
-  
 
   connectPeer(transport, roomCode) {
     this.closed = false;
@@ -1281,7 +1463,7 @@ class NetworkController {
     };
     transport.onclose = () => this.onClose();
     transport.onerror = () => {};
-    if (transport.readyState === 1 && transport.onopen) transport.onopen();   
+    if (transport.readyState === 1 && transport.onopen) transport.onopen();
   }
 
   onMessage(msg) {
@@ -1342,28 +1524,28 @@ class NetworkController {
   }
 
   onClose() {
-    if (this.closed) return;                 
+    if (this.closed) return;
     const wasLive = this.connected || !!this.room;
     this.connected = false;
     this.room = null;
     if (this.failed) {
       const code = this.failed;
       this.failed = null;
-      if (this.onerror) this.onerror(code);  
+      if (this.onerror) this.onerror(code);
     } else if (wasLive && this.ondisconnect) {
-      this.ondisconnect();                   
+      this.ondisconnect();
     } else if (this.onerror) {
-      this.onerror("connect");              
+      this.onerror("connect");
     }
   }
 
-  sendIntent(x, y) {
+  sendIntent(x, y, boost) {
     if (!this.ws || this.ws.readyState !== 1) return;
     if (this.dead || this.game.state !== "playing") return;
     const now = performance.now();
     if (now - this.lastIntentAt < 33) return;
     this.lastIntentAt = now;
-    this.ws.send(JSON.stringify({ t: "intent", x: Math.round(x), y: Math.round(y) }));
+    this.ws.send(JSON.stringify({ t: "intent", x: Math.round(x), y: Math.round(y), boost: !!boost }));
   }
 
   respawn() {
@@ -1381,14 +1563,13 @@ class NetworkController {
     this.myId = 0;
   }
 
-  
 
   update() {
     const g = this.game;
     if (this.buffer.length === 0) return;
 
     const now = performance.now();
-    const target = now - 100;                       
+    const target = now - 100;
     let a = this.buffer[0], b = this.buffer[this.buffer.length - 1];
     for (const s of this.buffer) {
       if (s.t <= target) a = s; else { b = s; break; }
@@ -1413,10 +1594,6 @@ class NetworkController {
       writeMirrorState(e, s);
       if (s.kind === "player") {
         e.isLocal = id === this.myId;
-        if (e.isLocal) {
-          e.trail.push(e.x, e.y);                  
-          while (e.trail.length > 52) e.trail.splice(0, 2);
-        }
         g.players.push(e);
       } else {
         g.food.push(e);
@@ -1437,7 +1614,6 @@ class NetworkController {
     if (g.deathCam && !this.entities.has(g.deathCam.id)) g.deathCam = null;
   }
 }
-
 
 
 function mixStates(A, B, k) {
@@ -1464,6 +1640,11 @@ function makeMirrorEntity(s) {
   }
   if (s.kind === "dust") return new Dust(s.x, s.y);
   if (s.kind === "asteroid") return new Asteroid(s.x, s.y);
+  if (s.kind === "rogue") {
+    const rg = new Rogue(s.x, s.y, massFromRadius(s.r), null);
+    rg.name = s.name || "VOID WALKER";
+    return rg;
+  }
   return new Planet(s.x, s.y);
 }
 
@@ -1490,14 +1671,11 @@ function writeMirrorState(e, s) {
 }
 
 
-
-
-
-const MAX_PLAYERS = 16;                    
+const MAX_PLAYERS = 16;
 const PEER_PREFIX = "bh-";
 
 function genRoomCode() {
-  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";   
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   let c = "";
   for (let i = 0; i < 5; i++) c += chars[(Math.random() * chars.length) | 0];
   return c;
@@ -1508,11 +1686,10 @@ function sanitizePeerName(raw) {
 }
 
 
-
 class PeerSocket {
   constructor(conn) {
     this.conn = conn;
-    this.readyState = 0;                   
+    this.readyState = 0;
     this.onopen = this.onmessage = this.onclose = this.onerror = null;
     conn.on("open", () => { this.readyState = 1; if (this.onopen) this.onopen(); });
     conn.on("data", d => {
@@ -1530,16 +1707,15 @@ class PeerSocket {
 }
 
 
-
 class PeerHost {
   constructor(game, name, onReady, onError) {
     this.game = game;
     this.name = name;
-    this.onReady = onReady;                
-    this.onError = onError;                
+    this.onReady = onReady;
+    this.onError = onError;
     this.peer = null;
     this.roomCode = null;
-    this.members = new Map();              
+    this.members = new Map();
     this.closed = false;
     this.retry = 0;
   }
@@ -1577,6 +1753,7 @@ class PeerHost {
         if (m && !m.dead && m.player.controller) {
           m.player.controller.x = Number(msg.x) || 0;
           m.player.controller.y = Number(msg.y) || 0;
+          m.player.boost = !!msg.boost;
         }
       } else if (msg.t === "respawn") {
         this.respawn(conn);
@@ -1611,21 +1788,20 @@ class PeerHost {
     const m = this.members.get(conn);
     if (!m) return;
     this.members.delete(conn);
-    if (m.player) m.player.dead = true;    
+    if (m.player) m.player.dead = true;
   }
 
   respawn(conn) {
     const m = this.members.get(conn);
     if (!m || !m.dead) return;
     const spot = this.game.safeSpawn(m.player);
-    m.player.reset(spot.x, spot.y);        
+    m.player.reset(spot.x, spot.y);
     m.player.spawnTime = this.game.time;
     m.dead = false;
     if (!this.game.players.includes(m.player)) this.game.players.push(m.player);
     this.game.events.push({ type: "spawn", hole: m.player });
   }
 
-  
 
   broadcast() {
     this.forwardEvents();
@@ -1645,8 +1821,14 @@ class PeerHost {
       }
       for (const id of m.last.p.keys()) if (!seenP.has(id)) { m.last.p.delete(id); d.push(id); }
 
+      const gx = m.player.x, gy = m.player.y;
+      const viewR = Math.max(CFG.NET.VIEW_RADIUS, m.player.r * CFG.NET.VIEW_R_MUL);
+      const x0 = gx - viewR, x1 = gx + viewR, y0 = gy - viewR, y1 = gy + viewR;
+
+      // interest culling — only send what's near this player, keeps the host fast on big maps
       for (const fd of game.food) {
         if (fd.dead) continue;
+        if (fd.x < x0 || fd.x > x1 || fd.y < y0 || fd.y > y1) continue;
         seenF.add(fd.id);
         const enc = encodeFood(fd);
         const key = enc.join("|");
@@ -1676,7 +1858,7 @@ class PeerHost {
             this.send(conn, { t: "e", kind: "kill", a: ev.hole.name, b: ev.victim.name, mine, victimIsMe });
             if (victimIsMe) {
               m.dead = true;
-              const rank = game.rankOf(m.player);   
+              const rank = game.rankOf(m.player);
               m.player.bestRank = Math.min(m.player.bestRank, rank);
               this.send(conn, {
                 t: "e", kind: "death",
@@ -1710,8 +1892,6 @@ class PeerHost {
 }
 
 
-
-
 (function main() {
   const $ = id => document.getElementById(id);
   const canvas = $("game");
@@ -1724,7 +1904,7 @@ class PeerHost {
   const game = new Game(audio);
   const localController = new LocalMouseController(input, camera);
 
-  
+
   PROG = new Progression();
   window.PROG = PROG;
   PROG.refreshUI();
@@ -1738,9 +1918,9 @@ class PeerHost {
         plinkoReturnEl = $("plinko-return"), shopEl = $("cosmetics-shop"),
         pauseEl = $("pause"), resumeEl = $("resume");
 
-  let net = null;      
-  let host = null;     
-  let mode = "solo";   
+  let net = null;
+  let host = null;
+  let mode = "solo";
 
   let plinko = null, pendingTokens = 0, plinkoResolved = false;
 
@@ -1766,7 +1946,7 @@ class PeerHost {
     return (nameEl.value || "").trim().toUpperCase().slice(0, 12) || "YOU";
   }
 
-  
+
   function enterSolo() {
     mode = "solo";
     if (host) { host.close(); host = null; }
@@ -1794,7 +1974,7 @@ class PeerHost {
     setStatus("");
   }
 
-  
+
   function startHost() {
     audio.unlock();
     audio.ui();
@@ -1808,9 +1988,9 @@ class PeerHost {
     setStatus("CREATING ROOM...", false);
 
     host = new PeerHost(game, name, code => {
-      
+
       game.clearEntities();
-      game.init();                              
+      game.init();
       const spot = game.safeSpawn(null);
       const me = new Player(spot.x, spot.y, name, "#ffb45e");
       me.isLocal = true;
@@ -1834,7 +2014,7 @@ class PeerHost {
     host.createRoom();
   }
 
-  
+
   function joinPeerRoom(code) {
     audio.unlock();
     audio.ui();
@@ -1894,9 +2074,9 @@ class PeerHost {
   }
 
   function respawnOrRestart() {
-    if (pendingTokens > 0 && !plinkoResolved) finishPlinko(1);   
-    if (mode === "host" && host) startSolo();          
-    else if (net && net.connected) net.respawn();      
+    if (pendingTokens > 0 && !plinkoResolved) finishPlinko(1);
+    if (mode === "host" && host) startSolo();
+    else if (net && net.connected) net.respawn();
     else startSolo();
   }
 
@@ -1911,7 +2091,7 @@ class PeerHost {
   $("join").addEventListener("click", joinFromInput);
   $("respawn").addEventListener("click", respawnOrRestart);
 
-  
+
   plinkoDropEl.addEventListener("click", () => { if (plinko && !plinko.landed) plinko.drop(); });
   plinkoSkipEl.addEventListener("click", () => finishPlinko(1));
   plinkoReturnEl.addEventListener("click", () => {
@@ -1938,7 +2118,7 @@ class PeerHost {
   nameEl.addEventListener("keydown", e => { if (e.key === "Enter") startSolo(); });
   window.addEventListener("keydown", e => {
     if ((e.code === "Space" || e.code === "Enter") && game.state === "dead") { e.preventDefault(); respawnOrRestart(); }
-    
+
     else if (e.code === "Escape" && game.state === "playing") setPaused(!PAUSED);
   });
 
@@ -1961,7 +2141,7 @@ class PeerHost {
     if (on) audio.ui();
   });
 
-  
+
   let hidden = false;
   document.addEventListener("visibilitychange", () => {
     hidden = document.hidden;
@@ -1978,19 +2158,19 @@ class PeerHost {
     $("d-time").textContent = mmss(d.time);
     $("d-eaten").textContent = d.absorbed;
 
-    
+
     const result = PROG.endRun({ peakMass: d.peakMass, rivalsEaten: d.rivalsEaten || 0, time: d.time });
     runRewardEl.textContent = "TOKENS EARNED: " + Progression.fmt(result.runTokens) +
       (result.questRewards > 0 ? "  (+" + Progression.fmt(result.questRewards) + " QUEST BONUS)" : "");
     PROG.updateTokenUI();
     PROG.renderQuests();
     pendingTokens = result.runTokens;
-    plinkoResolved = false;              
+    plinkoResolved = false;
     plinkoStatusEl.textContent = "";
     plinkoReturnEl.hidden = true;
-    if (plinko) plinko.reset();          
-    
-    
+    if (plinko) plinko.reset();
+
+
     if (!plinko) {
       plinko = new Plinko(plinkoCanvas);
       plinko.onLanded = finishPlinko;
@@ -2003,7 +2183,7 @@ class PeerHost {
     deathEl.classList.remove("gone");
   }
 
-  
+
   function finishPlinko(mult) {
     if (plinkoResolved) return;
     plinkoResolved = true;
@@ -2018,12 +2198,12 @@ class PeerHost {
     PROG.updateTokenUI();
   }
 
-  
-  
-  
+
   let acc = 0, last = performance.now();
   let fps = 60, fpsAcc = 0, fpsFrames = 0;
   let deathDelay = 0;
+  let attractSkip = false;
+  let lastBroadcast = 0;
 
   function frame(now) {
     requestAnimationFrame(frame);
@@ -2032,15 +2212,18 @@ class PeerHost {
     if (hidden || !isFinite(dt) || dt <= 0) return;
     dt = Math.min(dt, CFG.PHYSICS.MAX_FRAME_DT);
 
+    // menu attract mode renders the full sim behind it — cap to ~30fps
+    if (game.state === "menu") { attractSkip = !attractSkip; if (attractSkip) return; }
+
     fpsAcc += dt; fpsFrames++;
     if (fpsAcc >= 0.25) { fps = fpsFrames / fpsAcc; fpsAcc = 0; fpsFrames = 0; }
 
-    
+
     if (mode === "solo") {
-      if (!PAUSED) {                       
+      if (!PAUSED) {
         acc += dt;
         let steps = 0;
-        while (acc >= CFG.PHYSICS.FIXED_DT && steps < 8) {   
+        while (acc >= CFG.PHYSICS.FIXED_DT && steps < 8) {
           game.step(CFG.PHYSICS.FIXED_DT);
           acc -= CFG.PHYSICS.FIXED_DT;
           steps++;
@@ -2048,9 +2231,8 @@ class PeerHost {
         if (steps === 8) acc = 0;
       }
     } else if (mode === "host" && host) {
-      
-      
-      
+
+
       acc += dt;
       let steps = 0;
       while (acc >= CFG.PHYSICS.FIXED_DT && steps < 8) {
@@ -2059,12 +2241,12 @@ class PeerHost {
         steps++;
       }
       if (steps === 8) acc = 0;
-      host.broadcast();
+      if (now - lastBroadcast >= 40) { host.broadcast(); lastBroadcast = now; }   // ~25hz snapshots
     } else if (net && net.connected) {
-      
-      
-      net.update();                                    
-      for (const p of game.particles) p.step(dt);      
+
+
+      net.update();
+      for (const p of game.particles) p.step(dt);
       game.particles = game.particles.filter(p => !p.dead);
       for (let i = game.feed.length - 1; i >= 0; i--) {
         game.feed[i].t -= dt;
@@ -2072,7 +2254,7 @@ class PeerHost {
       }
     }
 
-    
+
     const listener = game.state === "dead" ? game.deathCam : game.local;
     for (const ev of game.events) {
       if (ev.type === "absorb") {
@@ -2084,8 +2266,8 @@ class PeerHost {
         audio.death();
         camera.kick(1.4);
         camera.hard = false;
-        deathDelay = 1.15;                 
-        setPaused(false);                  
+        deathDelay = 1.15;
+        setPaused(false);
       } else if (ev.type === "spawn") {
         audio.spawn();
         camera.hard = true;
@@ -2099,20 +2281,26 @@ class PeerHost {
       if (deathDelay <= 0 && game.state === "dead") showDeath();
     }
 
-    
+
     let camTarget;
     if (game.state === "playing") camTarget = game.local;
     else if (game.state === "dead") {
-      if (game.deathCam && game.deathCam.dead) game.deathCam = null;   
+      if (game.deathCam && game.deathCam.dead) game.deathCam = null;
       camTarget = game.deathCam || attractTarget();
     }
     else camTarget = attractTarget();
     camera.follow(camTarget, dt);
 
-    
+
     if (mode === "multi" && net && net.connected && game.state === "playing" && game.local && !PAUSED) {
       localController.update(game.local);
-      net.sendIntent(game.local.intentX, game.local.intentY);   
+      net.sendIntent(game.local.intentX, game.local.intentY, game.local.boost);
+      if (game.local.boost) {
+        game.local.trail.push(game.local.x, game.local.y);
+        while (game.local.trail.length > 52) game.local.trail.splice(0, 2);
+      } else if (game.local.trail.length) {
+        game.local.trail.length = 0;
+      }
     }
 
     renderer.draw(game);

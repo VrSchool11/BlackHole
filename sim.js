@@ -1,5 +1,3 @@
-
-
 (function (root, factory) {
   const api = factory();
   if (typeof module === "object" && module.exports) module.exports = api;
@@ -8,21 +6,21 @@
 "use strict";
 
 
-
 const CFG = {
-  WORLD: { w: 5000, h: 5000 },
-  COUNTS: { dust: 520, asteroids: 54, planets: 9, bots: 9 },
+  // bumped to 8000² when multiplayer landed — density held via COUNTS below
+  WORLD: { w: 8000, h: 8000 },
+  COUNTS: { dust: 1300, asteroids: 135, planets: 22, bots: 12 },
 
   PHYSICS: {
-    FIXED_DT: 1 / 60,           
+    FIXED_DT: 1 / 60,
     MAX_FRAME_DT: 0.10,
-    G: 26.0,                    
+    G: 26.0,
     INFLUENCE_MUL: 15,
     INFLUENCE_BASE: 140,
-    SWIRL: 0.62,                
+    SWIRL: 0.62,
     MAX_ACCEL: 5200,
     DRAG: 0.55,
-    EAT_RATIO: 1.06,            
+    EAT_RATIO: 1.06,
     EAT_OVERLAP: 0.72
   },
 
@@ -32,7 +30,33 @@ const CFG = {
     SPEED_FALLOFF: 0.42,
     MIN_SPEED: 74,
     ACCEL_LERP: 3.1,
-    SPAWN_SHIELD: 3.0           
+    SPAWN_SHIELD: 3.0
+  },
+
+  BOOST: {
+    SPEED_MUL: 1.7,
+    DRAIN: 50,
+    MIN_MASS: 170,      // floor sits below spawn size so holding shift keeps working
+    PELLET_RATE: 0.10,
+    PELLET_MASS: 5,
+    PELLET_LIFE: 22
+  },
+
+  ROGUE: {
+    // only ever shows up to pressure a runaway #1
+    MASS_MUL: 1.15,
+    RATIO_LEAD: 1.7,
+    MIN_LEADER: 4000,
+    CHECK_EVERY: 0.5,
+    COOLDOWN: 25,
+    LIFETIME: 22,
+    SPAWN_DIST: 1600,
+    SPEED_MUL: 0.8
+  },
+
+  NET: {
+    VIEW_RADIUS: 2800,
+    VIEW_R_MUL: 30
   },
 
   CAMERA: { VIEW_REF: 620, VIEW_PAD: 46, MIN_ZOOM: 0.16, MAX_ZOOM: 1.5, LERP: 2.4 },
@@ -45,11 +69,9 @@ const CFG = {
       { count: 140, speed: 0.62, size: 2.0,  alpha: 0.92 }
     ],
     SPAGHETTI_MAX: 4.6,
-    MAX_PARTICLES: 300          
+    MAX_PARTICLES: 300
   }
 };
-
-
 
 
 const TAU = Math.PI * 2;
@@ -64,7 +86,6 @@ const pick  = arr => arr[(Math.random() * arr.length) | 0];
 const chance = p => Math.random() < p;
 
 
-
 const radiusFromMass = m => Math.sqrt(m / Math.PI);
 const massFromRadius = r => Math.PI * r * r;
 
@@ -77,12 +98,10 @@ let __id = 1;
 const nextId = () => __id++;
 
 
-
-
 const r2 = v => Math.round(v * 100) / 100;
 const r3 = v => Math.round(v * 1000) / 1000;
-const FOOD_TYPES = { dust: 0, asteroid: 1, planet: 2 };
-const FOOD_TYPES_REV = ["dust", "asteroid", "planet"];
+const FOOD_TYPES = { dust: 0, asteroid: 1, planet: 2, rogue: 3 };
+const FOOD_TYPES_REV = ["dust", "asteroid", "planet", "rogue"];
 
 function encodePlayer(p) {
   return [p.id, Math.round(p.x), Math.round(p.y), Math.round(p.r), r2(p.stretch), r3(p.stretchAng),
@@ -96,15 +115,16 @@ function decodePlayer(a) {
 function encodeFood(f) {
   if (f.type === "dust")     return [f.id, 0, Math.round(f.x), Math.round(f.y), Math.round(f.r), r2(f.stretch), r3(f.stretchAng), f.tint];
   if (f.type === "asteroid") return [f.id, 1, Math.round(f.x), Math.round(f.y), Math.round(f.r), r2(f.stretch), r3(f.stretchAng), f.tint, r3(f.angle), f.lumps];
+  if (f.type === "rogue")    return [f.id, 3, Math.round(f.x), Math.round(f.y), Math.round(f.r), r2(f.stretch), r3(f.stretchAng), f.tint, f.name];
   return [f.id, 2, Math.round(f.x), Math.round(f.y), Math.round(f.r), r2(f.stretch), r3(f.stretchAng), f.tint, r3(f.angle), f.hasRing ? 1 : 0, r3(f.ringTilt), f.pal];
 }
 function decodeFood(a) {
   const kind = FOOD_TYPES_REV[a[1]];
   if (kind === "dust")     return { id: a[0], kind, x: a[2], y: a[3], r: a[4], stretch: a[5], stretchAng: a[6], tint: a[7] };
   if (kind === "asteroid") return { id: a[0], kind, x: a[2], y: a[3], r: a[4], stretch: a[5], stretchAng: a[6], tint: a[7], angle: a[8], lumps: a[9] };
+  if (kind === "rogue")    return { id: a[0], kind, x: a[2], y: a[3], r: a[4], stretch: a[5], stretchAng: a[6], tint: a[7], name: a[8] };
   return { id: a[0], kind, x: a[2], y: a[3], r: a[4], stretch: a[5], stretchAng: a[6], tint: a[7], angle: a[8], hasRing: !!a[9], ringTilt: a[10], pal: a[11] };
 }
-
 
 
 class Entity {
@@ -115,8 +135,8 @@ class Entity {
     this.mass = mass;
     this.r = radiusFromMass(mass);
     this.dead = false;
-    this.stretch = 1;        
-    this.stretchAng = 0;     
+    this.stretch = 1;
+    this.stretchAng = 0;
     this.spin = rand(-1.6, 1.6);
     this.angle = rand(0, TAU);
     this.tint = "#8fa6c8";
@@ -154,7 +174,7 @@ class Asteroid extends Entity {
     this.vx = rand(-30, 30); this.vy = rand(-30, 30);
     this.type = "asteroid";
     this.tint = pick(["#8b8375", "#6f7c8c", "#94836e", "#77706b"]);
-    this.lumps = [];                       
+    this.lumps = [];
     const n = randi(7, 11);
     for (let i = 0; i < n; i++) this.lumps.push(rand(0.74, 1.2));
   }
@@ -178,6 +198,32 @@ class Planet extends Entity {
   }
 }
 
+class Rogue extends Entity {
+  constructor(x, y, mass, target) {
+    super(x, y, mass);
+    this.type = "rogue";
+    this.target = target;
+    this.life = CFG.ROGUE.LIFETIME * rand(0.85, 1.15);
+    this.tint = pick(["#ff4a5a", "#ff5a8a", "#ff3a6a"]);
+    this.name = pick(["VOID WALKER", "CARRION", "RED DRIFT", "HARVESTER", "FATEFUL"]);
+    this.spin = rand(-0.9, 0.9);
+  }
+  step(dt, game) {
+    this.life -= dt;
+    if (this.life <= 0) { this.dead = true; return; }
+    let tx = this.x, ty = this.y;
+    if (this.target && !this.target.dead) { tx = this.target.x; ty = this.target.y; }
+    const dx = tx - this.x, dy = ty - this.y;
+    const d = Math.hypot(dx, dy) || 1;
+    const base = this.target && !this.target.dead ? this.target.maxSpeed * CFG.ROGUE.SPEED_MUL : 90;
+    const sp = Math.max(55, base);
+    this.vx = damp(this.vx, dx / d * sp, 1.2, dt);
+    this.vy = damp(this.vy, dy / d * sp, 1.2, dt);
+    this.vx += Math.sin(game.time * 1.4 + this.id) * 26;
+    this.vy += Math.cos(game.time * 1.1 + this.id) * 26;
+    this.integrate(dt, game.world);
+  }
+}
 
 
 class Player extends Entity {
@@ -186,21 +232,23 @@ class Player extends Entity {
     this.type = "player";
     this.name = name;
     this.color = color;
-    this.intentX = x; this.intentY = y;    
+    this.intentX = x; this.intentY = y;
     this.isLocal = false;
     this.isBot = false;
     this.controller = null;
     this.pulse = rand(0, TAU);
     this.diskAngle = rand(0, TAU);
     this.eatFlash = 0;
-    this.shield = 0;                       
+    this.shield = 0;
     this.trail = [];
-    
+
     this.absorbed = 0;
-    this.rivalsEaten = 0;                    
+    this.rivalsEaten = 0;
     this.peakMass = this.mass;
     this.bestRank = 99;
     this.spawnTime = 0;
+    this.boost = false;
+    this.boostTimer = 0;
   }
 
   get maxSpeed() {
@@ -209,15 +257,16 @@ class Player extends Entity {
   }
   get influence() { return this.r * CFG.PHYSICS.INFLUENCE_MUL + CFG.PHYSICS.INFLUENCE_BASE; }
 
-  step(dt, world) {
-    
+  step(dt, game) {
+    const world = game.world;
     const dx = this.intentX - this.x, dy = this.intentY - this.y;
     const dist = Math.hypot(dx, dy) || 1;
-    
     const ease = clamp(dist / (this.r * 1.6 + 26), 0, 1);
-    const desiredVX = (dx / dist) * this.maxSpeed * ease;
-    const desiredVY = (dy / dist) * this.maxSpeed * ease;
-    
+    const boosting = this.boost && this.mass > CFG.BOOST.MIN_MASS;
+    let sp = this.maxSpeed;
+    if (boosting) sp *= CFG.BOOST.SPEED_MUL;
+    const desiredVX = (dx / dist) * sp * ease;
+    const desiredVY = (dy / dist) * sp * ease;
     const k = CFG.PLAYER.ACCEL_LERP * (24 / (24 + this.r * 0.30));
     this.vx = damp(this.vx, desiredVX, k, dt);
     this.vy = damp(this.vy, desiredVY, k, dt);
@@ -230,16 +279,38 @@ class Player extends Entity {
     if (this.shield > 0) this.shield = Math.max(0, this.shield - dt);
     if (this.mass > this.peakMass) this.peakMass = this.mass;
 
-    this.trail.push(this.x, this.y);
-    while (this.trail.length > 52) this.trail.splice(0, 2);
+    if (boosting) {
+      this.setMass(Math.max(CFG.BOOST.MIN_MASS, this.mass - CFG.BOOST.DRAIN * dt));
+      this.boostTimer -= dt;
+      if (this.boostTimer <= 0) {
+        this.boostTimer = CFG.BOOST.PELLET_RATE;
+        const ang = Math.atan2(this.vy, this.vx) + Math.PI + rand(-0.3, 0.3);
+        // spawn behind the hole, not at its center — it would eat its own trail
+        const pellet = new Dust(this.x + Math.cos(ang) * (this.r * 0.9 + 4), this.y + Math.sin(ang) * (this.r * 0.9 + 4));
+        pellet.setMass(CFG.BOOST.PELLET_MASS);
+        pellet.vx = Math.cos(ang) * 130 + this.vx * 0.35;
+        pellet.vy = Math.sin(ang) * 130 + this.vy * 0.35;
+        pellet.tint = this.color;
+        pellet.ttl = CFG.BOOST.PELLET_LIFE * rand(0.8, 1.2);
+        game.food.push(pellet);
+      }
+    }
+    if (this.boost && this.mass <= CFG.BOOST.MIN_MASS) this.boost = false;
+
+    if (this.boost) {
+      this.trail.push(this.x, this.y);
+      while (this.trail.length > 52) this.trail.splice(0, 2);
+    } else if (this.trail.length) {
+      this.trail.length = 0;   // only leave a trail while boosting
+    }
   }
 
   consume(other) {
-    this.setMass(this.mass + other.mass);   
+    this.setMass(this.mass + other.mass);
     this.absorbed++;
     if (other.type === "player") this.rivalsEaten++;
     this.eatFlash = 1;
-    if (other.type === "player") this.shield = 0;   
+    if (other.type === "player") this.shield = 0;
   }
 
   reset(x, y) {
@@ -255,6 +326,8 @@ class Player extends Entity {
     this.bestRank = 99;
     this.shield = CFG.PLAYER.SPAWN_SHIELD;
     this.eatFlash = 0;
+    this.boost = false;
+    this.boostTimer = 0;
   }
 }
 
@@ -277,35 +350,37 @@ class HumanlikeController {
   constructor(game) {
     this.game = game;
 
-    
+
     const skill = rand(0.18, 0.95);
     this.p = {
       skill,
-      reaction:   rand(0.13, 0.22) + (1 - skill) * 0.28,  
+      reaction:   rand(0.13, 0.22) + (1 - skill) * 0.28,
       aggression: rand(0.15, 0.95),
       greed:      rand(0.2, 1.0),
       caution:    rand(0.2, 1.0),
-      patience:   rand(0.5, 2.4),                          
-      tremor:     (1 - skill) * 30 + 5,                    
-      handSpeed:  700 + skill * 1700                       
+      patience:   rand(0.5, 2.4),
+      tremor:     (1 - skill) * 30 + 5,
+      handSpeed:  700 + skill * 1700
     };
 
     this.seed = rand(0, 100);
     this.state = "wander";
-    this.cx = 0; this.cy = 0;          
+    this.cx = 0; this.cy = 0;
     this.cursorInit = false;
     this.goalX = 0; this.goalY = 0;
     this.target = null;
     this.threat = null;
-    this.noticeTimer = 0;              
+    this.noticeTimer = 0;
     this.decisionTimer = 0;
     this.glanceTimer = 0;
     this.hesitate = 0;
     this.jt = rand(0, 50);
     this.view = { prey: [], threats: [] };
+    this.stuckT = 0;
+    this.breakT = 0;
+    this.boostUntil = 0;
   }
 
-  
 
   perception(player) { return player.r * 14 + 850; }
 
@@ -318,17 +393,17 @@ class HumanlikeController {
     this.noticeTimer -= dt;
     this.hesitate -= dt;
 
-    
+
     if (this.glanceTimer <= 0) {
       this.glanceTimer = rand(0.09, 0.17);
       this.look(player);
     }
 
-    
+
     const t = this.view.threats[0] || null;
     if (t && t !== this.threat) {
       this.threat = t;
-      this.noticeTimer = this.p.reaction;      
+      this.noticeTimer = this.p.reaction;
     } else if (!t) {
       this.threat = null;
     }
@@ -340,23 +415,38 @@ class HumanlikeController {
       this.decisionTimer = 0;
     }
 
-    
+
     if (this.state !== "flee" && this.decisionTimer <= 0) this.decide(player);
 
-    
+
     let urgency = 0.5;
     if (this.state === "flee" && this.threat) {
       urgency = 1;
-      
+      const W = CFG.WORLD.w, H = CFG.WORLD.h, M = 300;
       const dx = player.x - this.threat.x, dy = player.y - this.threat.y;
       const d = Math.hypot(dx, dy) || 1;
       const panic = Math.sin(this.jt * 4.2 + this.seed) * (1 - this.p.skill) * 0.5;
-      const a = Math.atan2(dy, dx) + panic;
-      this.goalX = player.x + Math.cos(a) * 1100;
-      this.goalY = player.y + Math.sin(a) * 1100;
+      let a = Math.atan2(dy, dx) + panic;
+      const nearWall = player.x < M || player.x > W - M || player.y < M || player.y > H - M;
+      if (d < 750 && nearWall) a += Math.sin(this.jt * 3.5 + this.seed) * 0.9;
+      let gx = player.x + Math.cos(a) * 1100;
+      let gy = player.y + Math.sin(a) * 1100;
+      if (gx < M || gx > W - M || gy < M || gy > H - M) {
+        let ta;
+        if (player.x < M || player.x > W - M) {
+          const dir = this.threat.y > player.y ? -1 : 1;
+          ta = dir * (Math.PI / 2 + rand(-0.28, 0.28));
+        } else {
+          const dir = this.threat.x > player.x ? -1 : 1;
+          ta = dir > 0 ? Math.PI + rand(-0.28, 0.28) : rand(-0.28, 0.28);
+        }
+        gx = clamp(player.x + Math.cos(ta) * 1100, M, W - M);
+        gy = clamp(player.y + Math.sin(ta) * 1100, M, H - M);
+      }
+      this.goalX = gx; this.goalY = gy;
     } else if (this.state === "hunt" && this.target && !this.target.dead) {
       urgency = 0.55 + this.p.aggression * 0.45;
-      
+
       const lead = this.p.skill * 0.35;
       this.goalX = this.target.x + this.target.vx * lead;
       this.goalY = this.target.y + this.target.vy * lead;
@@ -364,27 +454,54 @@ class HumanlikeController {
       urgency = 0.35;
     }
 
-    
+
     if (this.hesitate > 0) { this.goalX = player.x; this.goalY = player.y; urgency = 0.2; }
+
+
+    const spd = Math.hypot(player.vx, player.vy);
+    const nearWall = player.x < 300 || player.x > CFG.WORLD.w - 300 || player.y < 300 || player.y > CFG.WORLD.h - 300;
+    if (nearWall || spd < 34) this.stuckT += dt; else this.stuckT = 0;
+    if (this.stuckT > 2.5) { this.breakT = 1.2; this.stuckT = 0; }
+    if (this.breakT > 0) {
+      this.breakT -= dt;
+      const cell = this.game.bestDensityCell(player.x, player.y, 1);
+      const tx = cell ? cell.x : CFG.WORLD.w / 2;
+      const ty = cell ? cell.y : CFG.WORLD.h / 2;
+      this.goalX = clamp(player.x + (tx - player.x) * 0.9, 300, CFG.WORLD.w - 300);
+      this.goalY = clamp(player.y + (ty - player.y) * 0.9, 300, CFG.WORLD.h - 300);
+    }
+
+
+    this.boostUntil -= dt;
+    let wantsBoost = false;
+    if (this.state === "flee" && this.threat) {
+      const td = Math.hypot(this.threat.x - player.x, this.threat.y - player.y);
+      if (this.boostUntil <= 0 && td < 900 && chance(0.45 + this.p.skill * 0.35)) this.boostUntil = rand(0.3, 0.85);
+      wantsBoost = this.boostUntil > 0;
+    } else if (this.state === "hunt" && this.target && !this.target.dead) {
+      const hd = Math.hypot(this.target.x - player.x, this.target.y - player.y);
+      if (this.boostUntil <= 0 && hd > 620 && hd < 1500 && chance(this.p.aggression * 0.22)) this.boostUntil = rand(0.25, 0.7);
+      wantsBoost = this.boostUntil > 0;
+    }
+    player.boost = wantsBoost && player.mass > CFG.BOOST.MIN_MASS;
 
     this.moveHand(player, dt, urgency);
   }
 
-  
 
   look(player) {
     const g = this.game;
     const R = this.perception(player);
     const R2 = R * R;
     const prey = [], threats = [];
-    
+
     const noise = () => 1 + rand(-0.3, 0.3) * (1 - this.p.skill);
 
     for (const p of g.players) {
       if (p === player || p.dead) continue;
       const dx = p.x - player.x, dy = p.y - player.y;
       const d2 = dx * dx + dy * dy;
-      if (d2 > R2) continue;                                  
+      if (d2 > R2) continue;
       const est = p.mass * noise();
       if (est > player.mass * CFG.PHYSICS.EAT_RATIO) threats.push({ e: p, d2 });
       else if (player.mass > est * CFG.PHYSICS.EAT_RATIO && p.shield <= 0) prey.push({ e: p, d2, w: 2.4 });
@@ -402,12 +519,11 @@ class HumanlikeController {
     this.view.prey = prey;
   }
 
-  
 
   decide(player) {
     this.decisionTimer = this.p.patience * rand(0.7, 1.4);
 
-    
+
     if (chance(0.07 * (1 - this.p.skill) + 0.02)) {
       this.hesitate = rand(0.2, 0.75);
     }
@@ -417,11 +533,11 @@ class HumanlikeController {
       const e = c.e;
       if (e.dead) continue;
       const d = Math.sqrt(c.d2);
-      
+
       let score = (e.mass * c.w * (c.w > 1 ? this.p.aggression * 2 : this.p.greed)) / (d + 120);
-      
+
       if (e.type === "planet") score *= 0.6 + (1 - this.p.caution) * 0.9;
-      score *= rand(0.82, 1.18);                        
+      score *= rand(0.82, 1.18);
       if (score > bestScore) { bestScore = score; best = e; }
     }
 
@@ -431,7 +547,7 @@ class HumanlikeController {
       return;
     }
 
-    
+
     this.state = "wander";
     this.target = null;
     const cell = this.game.bestDensityCell(player.x, player.y, this.p.greed);
@@ -444,7 +560,6 @@ class HumanlikeController {
     }
   }
 
-  
 
   moveHand(player, dt, urgency) {
     const p = this.p;
@@ -455,7 +570,7 @@ class HumanlikeController {
     this.cx += dx / d * step;
     this.cy += dy / d * step;
 
-    
+
     const tr = p.tremor;
     const jx = Math.sin(this.jt * 2.9 + this.seed) * tr + Math.sin(this.jt * 8.1 + this.seed * 2) * tr * 0.35;
     const jy = Math.cos(this.jt * 2.3 + this.seed) * tr + Math.cos(this.jt * 7.3 + this.seed * 3) * tr * 0.35;
@@ -464,7 +579,6 @@ class HumanlikeController {
     player.intentY = clamp(this.cy + jy, 0, CFG.WORLD.h);
   }
 }
-
 
 
 class RemoteIntentController {
@@ -489,23 +603,22 @@ class Game {
     this.particles = [];
     this.local = null;
     this.time = 0;
-    this.state = "menu";          
-    this.events = [];             
-    this.feed = [];               
+    this.state = "menu";
+    this.events = [];
+    this.feed = [];
     this.deathInfo = null;
     this.deathCam = null;
+    this.rogueTimer = 0;
+    this.lastRogueAt = -999;
 
-    
-    
+
     this.gridCell = 400;
     this.gridCols = Math.ceil(this.world.w / this.gridCell);
     this.gridRows = Math.ceil(this.world.h / this.gridCell);
     this.grid = new Float32Array(this.gridCols * this.gridRows);
     this.gridTimer = 0;
 
-    
-    
-    
+
     this.spaceCell = 320;
     this.spaceCols = Math.ceil(this.world.w / this.spaceCell);
     this.spaceRows = Math.ceil(this.world.h / this.spaceCell);
@@ -524,7 +637,6 @@ class Game {
     this.rebuildGrid();
   }
 
-  
 
   clearEntities() {
     this.food.length = 0;
@@ -538,6 +650,8 @@ class Game {
     this.ranked = [];
     this.time = 0;
     this.state = "menu";
+    this.rogueTimer = 0;
+    this.lastRogueAt = -999;
   }
 
   spawnBot(used) {
@@ -554,7 +668,6 @@ class Game {
     return b;
   }
 
-  
 
   spawnLocal(name, controller) {
     if (!this.local) {
@@ -576,7 +689,7 @@ class Game {
   killLocal(killer) {
     const me = this.local;
     const rank = this.rankOf(me);
-    me.bestRank = Math.min(me.bestRank, rank);   
+    me.bestRank = Math.min(me.bestRank, rank);
     this.state = "dead";
     this.deathCam = killer && !killer.dead ? killer : null;
     this.deathInfo = {
@@ -593,39 +706,44 @@ class Game {
   step(dt) {
     this.time += dt;
 
-    
+
     this.gridTimer -= dt;
     if (this.gridTimer <= 0) { this.gridTimer = 0.5; this.rebuildGrid(); }
 
     for (const p of this.players) { if (!p.dead && p.controller) p.controller.update(p, dt); }
-    for (const p of this.players) { if (!p.dead) p.step(dt, this.world); }
+    for (const p of this.players) { if (!p.dead) p.step(dt, this); }
 
-    this.buildSpatial();           
+    this.buildSpatial();
     this.applyGravity(dt);
 
     for (const e of this.food) {
       if (e.dead) continue;
-      const d = Math.exp(-CFG.PHYSICS.DRAG * dt);   
+      if (e.type === "rogue") continue;
+      if (e.ttl !== undefined && (e.ttl -= dt) <= 0) { e.dead = true; continue; }
+      const d = Math.exp(-CFG.PHYSICS.DRAG * dt);
       e.vx *= d; e.vy *= d;
       e.integrate(dt, this.world);
     }
 
-    this.buildSpatial();           
+    this.buildSpatial();
     this.resolveEating();
     for (const p of this.particles) p.step(dt);
+
+    this.rogueTimer -= dt;
+    if (this.rogueTimer <= 0) { this.rogueTimer = CFG.ROGUE.CHECK_EVERY; this.maybeSpawnRogue(); }
+    this.stepRogues(dt);
 
     this.updateRanks();
     this.compact();
     this.repopulate();
 
-    
+
     for (let i = this.feed.length - 1; i >= 0; i--) {
       this.feed[i].t -= dt;
       if (this.feed[i].t <= 0) this.feed.splice(i, 1);
     }
   }
 
-  
 
   rankOf(p) {
     let rank = 1;
@@ -654,7 +772,6 @@ class Game {
     }
   }
 
-  
 
   buildSpatial() {
     for (const bucket of this.space) bucket.length = 0;
@@ -668,8 +785,8 @@ class Game {
     for (const p of this.players) if (!p.dead) insert(p);
   }
 
-  
 
+  // one cell per bucket; gravity + eating only touch what's inside the query circle
   queryCircle(x, y, r, fn) {
     const cell = this.spaceCell;
     const x0 = Math.max(0, ((x - r) / cell) | 0), x1 = Math.min(this.spaceCols - 1, ((x + r) / cell) | 0);
@@ -683,7 +800,6 @@ class Game {
     }
   }
 
-  
 
   bestDensityCell(x, y, greed) {
     let best = null, bestScore = -Infinity;
@@ -701,7 +817,6 @@ class Game {
     return best;
   }
 
-  
 
   applyGravity(dt) {
     const { G, MAX_ACCEL, SWIRL } = CFG.PHYSICS;
@@ -712,7 +827,8 @@ class Game {
 
       const pullOne = (B) => {
         if (B === H || B.dead) return;
-        if (B.type === "player" && B.mass >= Hm) return;   
+        if (B.type === "rogue") return;
+        if (B.type === "player" && B.mass >= Hm) return;
 
         const dx = H.x - B.x, dy = H.y - B.y;
         const d2 = dx * dx + dy * dy;
@@ -721,21 +837,20 @@ class Game {
         const dist = Math.sqrt(d2);
         const nx = dx / dist, ny = dy / dist;
 
-        
+
         const soft = d2 + H.r * H.r * 0.55 + 40;
         let a = G * Hm / soft;
         if (a > MAX_ACCEL) a = MAX_ACCEL;
 
         const t = 1 - dist / R;
-        const falloff = t * t;                    
+        const falloff = t * t;
 
-        B.vx += nx * a * dt;                      
+        B.vx += nx * a * dt;
         B.vy += ny * a * dt;
-        const swirl = a * SWIRL * falloff;        
+        const swirl = a * SWIRL * falloff;
         B.vx += -ny * swirl * dt;
         B.vy +=  nx * swirl * dt;
 
-        
 
         const proximity = clamp(1 - (dist - H.r) / (H.r * 4 + 60), 0, 1);
         const s = 1 + (CFG.RENDER.SPAGHETTI_MAX - 1) * proximity * proximity;
@@ -748,18 +863,18 @@ class Game {
     for (const B of this.food) B.stretch = damp(B.stretch, 1, 5.5, dt);
   }
 
-  
 
   resolveEating() {
     const { EAT_RATIO, EAT_OVERLAP } = CFG.PHYSICS;
-    const holes = this.players.slice().sort((a, b) => b.mass - a.mass);   
+    const holes = this.players.slice().sort((a, b) => b.mass - a.mass); // big holes eat first
 
     for (const H of holes) {
-      if (H.dead) continue;                                               
+      if (H.dead) continue;
 
       const tryEat = (B) => {
-        if (B === H || B.dead) return;                                    
-        if (B.shield > 0) return;                                         
+        if (B === H || B.dead) return;
+        if (B.type === "rogue") return;
+        if (B.shield > 0) return;
         if (H.mass < B.mass * EAT_RATIO) return;
         const d = Math.hypot(B.x - H.x, B.y - H.y);
         if (d > H.r * EAT_OVERLAP + B.r * 0.25) return;
@@ -776,9 +891,7 @@ class Game {
         }
       };
 
-      
-      
-      
+
       this.queryCircle(H.x, H.y, H.r * 1.6, tryEat);
     }
   }
@@ -786,7 +899,7 @@ class Game {
   spawnAbsorption(victim, hole) {
     const max = CFG.RENDER.MAX_PARTICLES;
     const room = max - this.particles.length;
-    if (room <= 0) return;                    
+    if (room <= 0) return;
     let n = clamp(Math.round(6 + victim.r * 1.15), 6, 64);
     if (n > room) n = room;
     for (let i = 0; i < n; i++) {
@@ -809,7 +922,44 @@ class Game {
     if (this.particles.some(p => p.dead)) this.particles = this.particles.filter(p => !p.dead);
   }
 
-  
+
+  maybeSpawnRogue() {
+    if (this.state !== "playing") return;
+    if (this.time - this.lastRogueAt < CFG.ROGUE.COOLDOWN) return;
+    for (const e of this.food) if (e.type === "rogue" && !e.dead) return;
+    const leader = this.ranked[0];
+    if (!leader || leader.dead || leader.mass < CFG.ROGUE.MIN_LEADER) return;
+    const runnerUp = this.ranked[1];
+    if (!runnerUp || runnerUp.dead || leader.mass < runnerUp.mass * CFG.ROGUE.RATIO_LEAD) return;
+    if (!chance(0.5)) return;
+    const a = rand(0, TAU);
+    const x = clamp(leader.x + Math.cos(a) * CFG.ROGUE.SPAWN_DIST, 300, this.world.w - 300);
+    const y = clamp(leader.y + Math.sin(a) * CFG.ROGUE.SPAWN_DIST, 300, this.world.h - 300);
+    this.food.push(new Rogue(x, y, leader.mass * CFG.ROGUE.MASS_MUL, leader));
+    this.lastRogueAt = this.time;
+  }
+
+  stepRogues(dt) {
+    for (const rg of this.food) {
+      if (rg.type !== "rogue" || rg.dead) continue;
+      rg.step(dt, this);
+      if (rg.dead) continue;
+      if (rg.target && !rg.target.dead && rg.target.mass < CFG.ROGUE.MIN_LEADER) { rg.dead = true; continue; }
+      for (const H of this.players) {
+        if (H.dead || H.shield > 0) continue;
+        const d = Math.hypot(H.x - rg.x, H.y - rg.y);
+        if (d > rg.r * 0.85 + H.r * 0.25) continue;
+        if (rg.mass <= H.mass * CFG.PHYSICS.EAT_RATIO) continue;
+        H.dead = true;
+        this.spawnAbsorption(H, rg);
+        this.events.push({ type: "absorb", x: H.x, y: H.y, r: H.r, hole: rg, victim: H });
+        this.feed.unshift({ a: rg.name, b: H.name, mine: H === this.local, victimIsMe: H === this.local, t: 6 });
+        if (this.feed.length > 6) this.feed.length = 6;
+        if (H === this.local) this.killLocal(rg);
+      }
+    }
+  }
+
 
   safeSpawn(who) {
     const W = this.world.w, H = this.world.h;
@@ -830,7 +980,7 @@ class Game {
 
   repopulate() {
     const counts = { dust: 0, asteroid: 0, planet: 0 };
-    for (const e of this.food) counts[e.type]++;
+    for (const e of this.food) { if (e.type === "rogue") continue; counts[e.type]++; }
 
     const away = () => {
       const anchor = this.state === "dead" ? this.deathCam : this.local;
@@ -846,14 +996,14 @@ class Game {
     while (counts.planet < CFG.COUNTS.planets)     { const p = away(); this.food.push(new Planet(p.x, p.y)); counts.planet++; }
 
     const wanted = CFG.COUNTS.bots + (this.state === "playing" ? 1 : 0);
-    const used = new Set(this.players.map(p => p.name));   
+    const used = new Set(this.players.map(p => p.name));
     let guard = 0;
     while (this.players.length < wanted && guard++ < 4) this.spawnBot(used);
   }
 }
 
 return {
-  CFG, Game, Player, Dust, Asteroid, Planet, Particle,
+  CFG, Game, Player, Rogue, Dust, Asteroid, Planet, Particle,
   HumanlikeController, RemoteIntentController,
   encodePlayer, decodePlayer, encodeFood, decodeFood, FOOD_TYPES, FOOD_TYPES_REV,
   nextId, clamp, lerp, damp, rand, randi, pick, chance,

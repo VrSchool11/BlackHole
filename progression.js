@@ -1,5 +1,3 @@
-
-
 "use strict";
 
 class Progression {
@@ -38,7 +36,7 @@ class Progression {
     this._load();
   }
 
-  
+
   _load() {
     try {
       this.tokens = parseInt(localStorage.getItem("bh_saved_tokens") || "0", 10) || 0;
@@ -46,9 +44,8 @@ class Progression {
       this.best = JSON.parse(localStorage.getItem("bh_quest_best") || "{}") || {};
       this.unlocked = JSON.parse(localStorage.getItem("bh_unlocked_cosmetics") || "[]") || [];
       this.equipped = JSON.parse(localStorage.getItem("bh_equipped_cosmetics") || "{}") || {};
-    } catch (e) { 
- }
-    
+    } catch (e) {}
+
     for (const q of Progression.QUESTS) if (!(q.id in this.quests)) this.quests[q.id] = false;
     for (const q of Progression.QUESTS) if (!(q.track in this.best)) this.best[q.track] = 0;
     this._saveAll();
@@ -63,7 +60,7 @@ class Progression {
     } catch (e) {}
   }
 
-  
+
   addTokens(n) {
     if (n > 0) { this.tokens += n; this._saveAll(); }
     return this.tokens;
@@ -75,7 +72,6 @@ class Progression {
     return true;
   }
 
-  
 
   endRun(stats) {
     const runTokens = Math.floor((stats.peakMass || 0) / 500) + ((stats.rivalsEaten || 0) * 10);
@@ -100,7 +96,7 @@ class Progression {
     return { value: v, done: !!this.quests[q.id] };
   }
 
-  
+
   item(id) {
     for (const cat of Object.keys(Progression.SHOP)) {
       const found = Progression.SHOP[cat].find(i => i.id === id);
@@ -124,7 +120,7 @@ class Progression {
     this._saveAll();
     return true;
   }
-  
+
 
   equippedColors() {
     const out = { disk: null, trail: null, orb: null };
@@ -136,7 +132,7 @@ class Progression {
     return out;
   }
 
-  
+
   static fmt(n) { return Math.round(n).toLocaleString("en-US"); }
 
   updateTokenUI() {

@@ -1,5 +1,3 @@
-
-
 "use strict";
 
 class Plinko {
@@ -8,19 +6,19 @@ class Plinko {
     this.ctx = canvas.getContext("2d");
     this.W = canvas.width;
     this.H = canvas.height;
-    
+
     this.SLOTS = [1, 1.2, 1.5, 2, 1.5, 1.2, 1];
     this.pegR = 5;
     this.ballR = 9;
-    this.gravity = 1500;         
-    this.restitution = 0.34;     
-    this.onLanded = null;        
+    this.gravity = 1500;
+    this.restitution = 0.34;
+    this.onLanded = null;
     this.ball = null;
     this.landed = false;
     this.landedIdx = -1;
     this.raf = null;
     this.last = 0;
-    this.timer = 0;              
+    this.timer = 0;
     this.buildPegs();
     this.drawIdle();
   }
@@ -28,7 +26,7 @@ class Plinko {
   buildPegs() {
     const pegs = [];
     const rows = 12;
-    const top = 46, bottom = this.H - 78;          
+    const top = 46, bottom = this.H - 78;
     const left = 24, right = this.W - 24;
     for (let i = 0; i < rows; i++) {
       const n = i + 1;
@@ -43,7 +41,7 @@ class Plinko {
     this.slotW = this.W / this.SLOTS.length;
   }
 
-  
+
   reset() {
     this.ball = null;
     this.landed = false;
@@ -60,7 +58,7 @@ class Plinko {
     this.timer = 0;
     this.last = performance.now();
     const loop = now => {
-      
+
       if (!this.ball) { this.raf = null; return; }
       const dt = Math.min((now - this.last) / 1000, 1 / 30);
       this.last = now;
@@ -72,18 +70,18 @@ class Plinko {
     this.raf = requestAnimationFrame(loop);
   }
 
-  
+
   step(dt) {
     const b = this.ball;
     b.vy += this.gravity * dt;
     b.x += b.vx * dt;
     b.y += b.vy * dt;
 
-    
+
     if (b.x < this.ballR) { b.x = this.ballR; b.vx *= -0.5; }
     if (b.x > this.W - this.ballR) { b.x = this.W - this.ballR; b.vx *= -0.5; }
 
-    
+
     for (const p of this.pegs) {
       const dx = b.x - p.x, dy = b.y - p.y;
       const d = Math.hypot(dx, dy);
@@ -100,7 +98,7 @@ class Plinko {
       }
     }
 
-    
+
     if (b.y + this.ballR >= this.floorY) {
       b.y = this.floorY - this.ballR;
       b.vy = 0;
@@ -108,8 +106,7 @@ class Plinko {
       if (Math.abs(b.vx) < 6) this.land(b.x);
     }
 
-    
-    
+
     this.timer += dt;
     if (!this.landed && this.timer > 12) {
       b.y = this.floorY - this.ballR;
@@ -119,7 +116,6 @@ class Plinko {
     }
   }
 
-  
 
   land(slotX) {
     this.landed = true;
@@ -127,7 +123,7 @@ class Plinko {
     if (this.onLanded) this.onLanded(this.SLOTS[this.landedIdx], this.landedIdx);
   }
 
-  
+
   slotLabel(m) { return (m === Math.round(m) ? String(m) : m.toFixed(1)) + "x"; }
 
   drawIdle() { this.draw(); }
@@ -138,7 +134,7 @@ class Plinko {
     ctx.fillStyle = "rgba(4,10,18,0.55)";
     ctx.fillRect(0, 0, W, H);
 
-    
+
     for (let i = 0; i < this.SLOTS.length; i++) {
       const x = i * this.slotW;
       const hot = this.landed && i === this.landedIdx;
@@ -152,13 +148,13 @@ class Plinko {
       ctx.fillText(this.slotLabel(this.SLOTS[i]), x + this.slotW / 2, this.floorY + 28);
     }
 
-    
+
     ctx.fillStyle = "rgba(170,200,240,0.75)";
     for (const p of this.pegs) {
       ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.fill();
     }
 
-    
+
     if (this.ball) {
       const b = this.ball;
       ctx.save();
