@@ -4,56 +4,129 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
 <title>Blackhole.io</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Stencil:wght@500;700&family=Archivo:wght@500;600;700&family=Courier+Prime:wght@400;700&family=Special+Elite&display=swap" rel="stylesheet" />
 <style>
-  /* my colors */
+  /* eclipse expedition — brass instruments, khaki canvas, oxide flag, one collapsing hole */
   :root {
-    --bg: #0a0a14;
-    --panel: #141426;
-    --text: #e8f0ff;
-    --dim: #8b93a7;
-    --accent: #6ee87a;
-    --danger: #ff6b6b;
-    --good: #7dff9e;
-    --line: #2b3350;
+    --void: #100e09;
+    --void-2: #18150d;
+    --void-3: #221e13;
+    --chalk: #ece3c9;
+    --chalk-dim: #a89877;
+    --chalk-faint: #887a5c;
+    --brass: #c88b3f;
+    --brass-dim: rgba(200, 139, 63, 0.14);
+    --verdigris: #86a184;
+    --oxide: #c65b43;
+    --line: #453c29;
+    --line-soft: #2a2517;
+    --display: "Big Shoulders Stencil", Impact, "Arial Narrow", sans-serif;
+    --body: "Archivo", system-ui, sans-serif;
+    --mono: "Courier Prime", ui-monospace, "SFMono-Regular", monospace;
+    --dispatch: "Special Elite", "Courier Prime", monospace;
+    --ease: cubic-bezier(0.22, 1, 0.36, 1);
   }
 
   html, body {
     margin: 0; padding: 0; width: 100%; height: 100%;
-    background: var(--bg);
+    background: var(--void);
     overflow: hidden;
     cursor: crosshair;
-    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-family: var(--body);
   }
   #game { display: block; position: fixed; inset: 0; width: 100vw; height: 100vh; background: #000; }
 
+  ::selection { background: var(--brass); color: #100e09; }
+
+  /* worn field-paper grain over everything, vignette under the UI */
+  #grain {
+    position: fixed; inset: -50%;
+    z-index: 999;
+    pointer-events: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='0.55'/%3E%3C/svg%3E");
+    opacity: 0.045;
+    mix-blend-mode: overlay;
+    animation: grain 9s steps(8) infinite;
+  }
+  @keyframes grain {
+    0%, 100% { transform: translate(0, 0); }
+    20% { transform: translate(-1.5%, 1%); }
+    40% { transform: translate(1%, -1.5%); }
+    60% { transform: translate(-1%, 1.5%); }
+    80% { transform: translate(1.5%, -1%); }
+  }
+  body::after {
+    content: "";
+    position: fixed; inset: 0;
+    z-index: 6;
+    pointer-events: none;
+    background: radial-gradient(ellipse at center, transparent 52%, rgba(9, 7, 4, 0.6) 100%);
+  }
+
   #hud {
     position: fixed; top: 16px; left: 16px; z-index: 10;
-    font-size: 12px; line-height: 1.6;
-    color: var(--dim);
+    font-family: var(--mono);
+    font-size: 11px; line-height: 1.7;
+    letter-spacing: 0.04em;
+    color: var(--chalk-dim);
+    font-feature-settings: "tnum" 1;
     pointer-events: none;
   }
-  #hud .k { color: var(--dim); opacity: 0.6; }
-  #hud .big { font-size: 16px; color: var(--text); letter-spacing: 2px; }
+  #hud .k { color: var(--chalk-faint); }
+  #hud .big { font-size: 15px; color: var(--chalk); letter-spacing: 0.05em; }
+  #hud #ui-buffs { margin-top: 4px; display: flex; gap: 6px; }
+  #hud #ui-buffs span {
+    padding: 2px 6px; border: 1px solid currentColor; font-size: 9px; letter-spacing: 0.06em;
+  }
+  #hud #ui-buffs .buff-speed { color: #5ef0d8; }
+  #hud #ui-buffs .buff-magnet { color: #c98fff; }
+  #hud #live {
+    display: flex; align-items: center; gap: 8px; color: var(--chalk-faint); margin-bottom: 8px;
+    font-family: var(--body); font-weight: 700; text-transform: uppercase; letter-spacing: 0.14em; font-size: 10px;
+  }
+  #hud #live .dot {
+    width: 6px; height: 6px;
+    background: var(--brass);
+    transform: rotate(45deg);
+    animation: pulse-dot 3s var(--ease) infinite;
+  }
+  @keyframes pulse-dot {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.35; }
+  }
 
   #board {
     position: fixed; top: 16px; right: 16px; text-align: right; z-index: 10;
-    font-size: 12px; line-height: 1.7;
-    color: var(--dim);
+    font-family: var(--mono);
+    font-size: 11px; line-height: 1.8;
+    letter-spacing: 0.02em;
+    color: var(--chalk-dim);
+    font-feature-settings: "tnum" 1;
     pointer-events: none;
   }
-  #board .board-header { color: var(--dim); opacity: 0.7; letter-spacing: 2px; margin-bottom: 4px; }
-  #board .me { color: var(--accent); }
+  #board .board-header {
+    font-family: var(--body); font-weight: 700; font-size: 10px;
+    color: var(--chalk-faint); letter-spacing: 0.18em; margin-bottom: 6px; text-transform: uppercase;
+  }
+  #board .me { color: var(--brass); }
+  #board .team-score { margin-bottom: 6px; padding-bottom: 6px; border-bottom: 1px solid var(--line-soft); font-weight: 700; }
+  #board .team-red { color: #d9605a; }
+  #board .team-blue { color: #5a8fd9; }
 
   #feed {
     position: fixed; top: 150px; right: 16px; text-align: right; z-index: 10;
-    font-size: 11px; line-height: 1.9;
-    color: var(--dim);
+    font-family: var(--mono);
+    font-size: 10px; line-height: 2;
+    letter-spacing: 0.02em;
+    color: var(--chalk-dim);
     pointer-events: none;
   }
-  #feed div { animation: feed-in 0.35s ease both; }
-  #feed .ate { color: var(--text); }
-  #feed .mine { color: var(--accent); }
-  #feed .victim { color: var(--danger); }
+  #feed div { animation: feed-in 0.5s var(--ease) both; }
+  #feed .ate { color: var(--chalk); }
+  #feed .mine { color: var(--brass); }
+  #feed .victim { color: var(--oxide); }
   @keyframes feed-in { from { opacity: 0; transform: translateX(14px); } to { opacity: 1; transform: none; } }
 
   .screen {
@@ -61,157 +134,259 @@
     display: flex; flex-direction: column; align-items: center;
     justify-content: flex-start;
     gap: 16px; text-align: center;
-    padding: 40px 0;
+    padding: 48px 0;
     overflow-y: auto;
-    background: radial-gradient(ellipse at center, rgba(0,0,0,0.55), rgba(0,0,0,0.85));
-    transition: opacity 0.4s ease;
+    background: radial-gradient(ellipse at center, rgba(16, 14, 9, 0.75), rgba(8, 7, 4, 0.94));
+    transition: opacity 0.5s var(--ease);
   }
-  .screen > * { text-shadow: 0 2px 12px rgba(0,0,0,0.9); }
   .screen.gone { opacity: 0; pointer-events: none; }
 
   h1 {
     margin: 0;
-    font-size: 48px;
-    font-weight: 400;
-    letter-spacing: 10px;
-    color: var(--text);
-    text-shadow: 0 0 20px rgba(110,232,122,0.3);
-    padding-left: 10px;
+    font-family: var(--display);
+    font-weight: 500;
+    font-size: clamp(50px, 10vw, 86px);
+    line-height: 0.86;
+    letter-spacing: 0.01em;
+    text-transform: uppercase;
+    color: var(--chalk);
   }
-  .tagline { color: var(--dim); font-size: 13px; letter-spacing: 2px; line-height: 2; }
-  .stats { display: flex; gap: 32px; margin: 4px 0; }
-  .divider { width: 200px; height: 1px; background: var(--line); }
+  h1 em {
+    font-style: normal;
+    color: var(--brass);
+  }
+  .tagline {
+    font-family: var(--mono);
+    font-weight: 400;
+    color: var(--chalk-dim);
+    font-size: 12px;
+    letter-spacing: 0.1em;
+    line-height: 1.9;
+    text-transform: uppercase;
+  }
+  .stats { display: flex; gap: 36px; margin: 4px 0; }
+  .divider { width: 180px; height: 1px; background: var(--line); position: relative; }
+  .divider::before {
+    content: ""; position: absolute; left: 50%; top: -2px; transform: translateX(-50%);
+    width: 4px; height: 5px; background: var(--brass);
+  }
 
   input[type=text] {
-    background: var(--panel);
+    background: var(--void-2);
     border: 1px solid var(--line);
-    color: var(--text);
-    font-family: inherit;
-    font-size: 14px;
-    letter-spacing: 2px;
+    color: var(--chalk);
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.1em;
     text-align: center;
     text-transform: uppercase;
     padding: 12px 16px;
     width: 230px;
-    border-radius: 4px;
+    border-radius: 0;
     outline: none;
+    transition: border-color 0.25s var(--ease), background 0.25s var(--ease);
   }
-  input[type=text]:focus { border-color: var(--accent); }
+  input[type=text]::placeholder { color: var(--chalk-faint); }
+  input[type=text]:focus { border-color: var(--brass); background: var(--void-3); }
 
   button {
     background: transparent;
-    border: 1px solid var(--accent);
-    color: var(--accent);
-    font-family: inherit;
-    font-size: 15px;
-    letter-spacing: 3px;
-    padding: 12px 28px;
-    border-radius: 8px;
+    border: 1px solid var(--line);
+    color: var(--chalk-dim);
+    font-family: var(--body);
+    font-weight: 700;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 12px 26px;
+    border-radius: 0;
     cursor: pointer;
-    transition: background 0.15s ease, transform 0.1s ease;
+    transition: color 0.2s var(--ease), border-color 0.2s var(--ease), background 0.2s var(--ease), transform 0.12s var(--ease);
   }
-  button:hover { background: rgba(110,232,122,0.1); }
+  button:hover { color: var(--brass); border-color: var(--brass); background: var(--brass-dim); }
   button:active { transform: scale(0.97); }
+  button:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
+  button:disabled { opacity: 0.4; cursor: default; }
 
-  #death h1 { color: var(--danger); text-shadow: 0 0 20px rgba(255,107,107,0.3); }
-  #death .killer { font-size: 14px; letter-spacing: 2px; color: var(--dim); }
-  #death .killer b { color: var(--text); font-weight: 400; }
+  #death h1 { color: var(--oxide); }
+  #death h1 em { color: var(--oxide); }
+  #death .killer {
+    font-family: var(--dispatch);
+    font-size: 12px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--chalk-dim);
+  }
+  #death .killer b {
+    font-family: var(--dispatch);
+    font-weight: 400;
+    font-size: 17px;
+    letter-spacing: 0;
+    color: var(--chalk);
+  }
 
-  .stat { min-width: 84px; }
-  .stat .v { font-size: 22px; color: var(--text); letter-spacing: 1px; }
-  .stat .l { font-size: 10px; color: var(--dim); letter-spacing: 2px; margin-top: 4px; }
-  .hint { font-size: 10px; color: var(--dim); opacity: 0.6; letter-spacing: 2px; }
+  .stat { min-width: 80px; }
+  .stat .v {
+    font-family: var(--mono);
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--chalk);
+    letter-spacing: 0;
+    font-feature-settings: "tnum" 1;
+  }
+  .stat .l {
+    font-family: var(--body);
+    font-weight: 700;
+    font-size: 9px;
+    color: var(--chalk-faint);
+    letter-spacing: 0.12em;
+    margin-top: 4px;
+    text-transform: uppercase;
+  }
+  .hint {
+    font-family: var(--body); font-weight: 600;
+    font-size: 10px; color: var(--chalk-faint); letter-spacing: 0.1em; text-transform: uppercase;
+  }
 
   #sound {
     position: fixed; bottom: 16px; left: 16px; z-index: 12;
-    font-size: 11px; letter-spacing: 2px; color: var(--dim);
-    border: 1px solid var(--line); padding: 8px 12px; border-radius: 4px;
-    cursor: pointer; background: transparent;
-    transition: color 0.15s ease, border-color 0.15s ease;
+    font-family: var(--body); font-weight: 700;
+    font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--chalk-dim);
+    border: 1px solid var(--line); padding: 8px 12px; border-radius: 0;
+    cursor: pointer; background: var(--void-2);
+    transition: color 0.25s var(--ease), border-color 0.25s var(--ease);
   }
-  #sound:hover { color: var(--accent); border-color: var(--accent); }
-  #sound.off { color: var(--danger); border-color: var(--danger); }
+  #sound:hover { color: var(--brass); border-color: var(--brass); }
+  #sound.off { color: var(--oxide); border-color: var(--oxide); }
 
   #roomtag {
     position: fixed; top: 16px; left: 50%; transform: translateX(-50%); z-index: 11;
-    font-size: 12px; letter-spacing: 3px; color: var(--accent);
-    padding: 8px 16px; border: 1px solid rgba(110,232,122,0.4); border-radius: 4px;
-    background: var(--panel);
+    font-family: var(--mono);
+    font-size: 11px; letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--brass);
+    padding: 8px 18px;
+    border: 1px solid var(--brass);
+    border-radius: 0;
+    background: var(--void-2);
     cursor: pointer;
   }
-  #roomtag b { color: var(--text); }
+  #roomtag b { color: var(--chalk); font-weight: 700; }
+  #daily-date { font-family: var(--mono); font-weight: 400; opacity: 0.7; margin-left: 4px; }
   #roomtag.gone { display: none; }
-  .row { display: flex; gap: 16px; align-items: center; justify-content: center; flex-wrap: wrap; }
+  .row { display: flex; gap: 14px; align-items: center; justify-content: center; flex-wrap: wrap; }
   .row input[type=text] { width: 150px; padding: 10px 12px; }
-  .status { min-height: 16px; font-size: 11px; letter-spacing: 2px; color: var(--dim); }
-  .status.err { color: var(--danger); }
+  .status {
+    min-height: 16px;
+    font-family: var(--body); font-weight: 700;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--chalk-dim);
+  }
+  .status.err { color: var(--oxide); }
 
   .token-balance-display {
     padding: 8px 20px;
-    border: 1px solid rgba(110,232,122,0.4);
-    border-radius: 4px;
-    font-size: 13px;
-    letter-spacing: 2px;
-    color: var(--accent);
-    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 0;
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--brass);
+    font-feature-settings: "tnum" 1;
+    background: var(--void-2);
   }
   .token-balance-display b {
-    color: var(--text);
-    font-weight: 400;
+    color: var(--chalk);
+    font-weight: 700;
   }
 
   .shop-container,
-  .quest-container {
+  .quest-container,
+  .settings-container,
+  .stats-container {
     width: min(92vw, 420px);
     text-align: left;
   }
   .shop-summary,
-  .quest-summary {
-    padding: 8px 12px;
+  .quest-summary,
+  .settings-summary {
+    padding: 9px 14px;
     border: 1px solid var(--line);
-    border-radius: 4px;
-    font-size: 12px;
-    letter-spacing: 2px;
-    color: var(--text);
-    background: var(--panel);
+    border-radius: 0;
+    font-family: var(--body);
+    font-weight: 700;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--chalk);
+    background: var(--void-2);
     cursor: pointer;
     list-style: none;
-    transition: border-color 0.15s ease;
+    transition: border-color 0.2s var(--ease);
   }
   .shop-summary::-webkit-details-marker,
-  .quest-summary::-webkit-details-marker {
+  .quest-summary::-webkit-details-marker,
+  .settings-summary::-webkit-details-marker {
     display: none;
   }
+  .shop-summary::after,
+  .quest-summary::after,
+  .settings-summary::after { content: "+"; float: right; color: var(--brass); }
+  details[open] .shop-summary::after,
+  details[open] .quest-summary::after,
+  details[open] .settings-summary::after { content: "\2013"; }
   .shop-summary:hover,
   .quest-summary:hover,
+  .settings-summary:hover,
   details[open] .shop-summary,
-  details[open] .quest-summary {
-    border-color: var(--accent);
+  details[open] .quest-summary,
+  details[open] .settings-summary {
+    border-color: var(--brass);
   }
 
   .cosmetics-shop,
-  .quest-log {
+  .quest-log,
+  .settings-panel {
     margin-top: 8px;
-    padding: 6px 12px;
+    padding: 8px 14px;
     border: 1px solid var(--line);
-    border-radius: 4px;
+    border-radius: 0;
     max-height: 34vh;
     overflow-y: auto;
-    background: var(--panel);
+    background: var(--void-2);
   }
+  .cosmetics-shop::-webkit-scrollbar,
+  .quest-log::-webkit-scrollbar,
+  .settings-panel::-webkit-scrollbar { width: 8px; }
+  .cosmetics-shop::-webkit-scrollbar-track,
+  .quest-log::-webkit-scrollbar-track,
+  .settings-panel::-webkit-scrollbar-track { background: var(--void); }
+  .cosmetics-shop::-webkit-scrollbar-thumb,
+  .quest-log::-webkit-scrollbar-thumb,
+  .settings-panel::-webkit-scrollbar-thumb { background: var(--line); }
+  .cosmetics-shop::-webkit-scrollbar-thumb:hover,
+  .quest-log::-webkit-scrollbar-thumb:hover,
+  .settings-panel::-webkit-scrollbar-thumb:hover { background: var(--brass); }
 
   .shop-category-name {
     margin: 10px 4px 4px;
+    font-family: var(--body);
+    font-weight: 700;
     font-size: 10px;
-    letter-spacing: 2px;
-    color: var(--dim);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--chalk-faint);
   }
   .shop-item {
     display: flex;
     align-items: center;
     gap: 12px;
     padding: 7px 4px;
-    border-bottom: 1px solid var(--line);
+    border-bottom: 1px solid var(--line-soft);
   }
   .shop-item:last-child {
     border-bottom: none;
@@ -219,32 +394,38 @@
   .shop-item-name {
     flex: 1;
     text-align: left;
-    font-size: 12px;
-    letter-spacing: 1px;
-    color: var(--text);
+    font-family: var(--body);
+    font-weight: 600;
+    font-size: 11px;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: var(--chalk);
   }
   .shop-item-cost {
-    font-size: 11px;
-    color: var(--accent);
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--brass);
     white-space: nowrap;
+    font-feature-settings: "tnum" 1;
   }
   .shop-item .shop-item-action {
     padding: 8px 14px;
-    font-size: 11px;
-    letter-spacing: 2px;
+    font-size: 10px;
+    letter-spacing: 0.06em;
   }
   .shop-item-action-equipped {
     border-color: var(--line);
-    color: var(--dim);
+    color: var(--chalk-faint);
     cursor: default;
   }
   .shop-item-action-equipped:hover {
     background: transparent;
+    color: var(--chalk-faint);
   }
 
   .quest-entry {
     padding: 8px 4px;
-    border-bottom: 1px solid var(--line);
+    border-bottom: 1px solid var(--line-soft);
   }
   .quest-entry:last-child {
     border-bottom: none;
@@ -256,39 +437,53 @@
     gap: 10px;
   }
   .quest-name {
-    font-size: 12px;
-    letter-spacing: 1px;
-    color: var(--text);
+    font-family: var(--body);
+    font-weight: 600;
+    font-size: 11px;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: var(--chalk);
   }
   .quest-reward {
-    font-size: 11px;
-    color: var(--accent);
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--brass);
     white-space: nowrap;
   }
   .quest-desc {
     margin-top: 3px;
+    font-family: var(--body);
     font-size: 11px;
-    color: var(--dim);
+    font-weight: 400;
+    color: var(--chalk-dim);
   }
   .quest-progress {
     margin-top: 5px;
-    font-size: 11px;
-    color: var(--dim);
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--chalk-dim);
+    font-feature-settings: "tnum" 1;
   }
   .quest-status {
     margin-top: 4px;
-    font-size: 10px;
-    letter-spacing: 2px;
-    color: var(--dim);
+    font-family: var(--body);
+    font-weight: 700;
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--chalk-faint);
   }
   .quest-status-done {
-    color: var(--good);
+    color: var(--verdigris);
   }
 
   .run-reward {
-    font-size: 14px;
-    letter-spacing: 2px;
-    color: var(--text);
+    font-family: var(--mono);
+    font-size: 13px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--chalk);
+    font-feature-settings: "tnum" 1;
   }
   .plinko-section {
     display: flex;
@@ -300,94 +495,281 @@
     display: none;
   }
   .plinko-title {
-    font-size: 12px;
-    letter-spacing: 3px;
-    color: var(--accent);
+    font-family: var(--body);
+    font-weight: 700;
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--brass);
   }
   .plinko-canvas {
     max-width: min(92vw, 560px);
     height: auto;
     border: 1px solid var(--line);
-    border-radius: 6px;
-    background: var(--bg);
+    border-radius: 0;
+    background: var(--void);
   }
   .plinko-status {
     min-height: 16px;
-    font-size: 13px;
-    letter-spacing: 2px;
-    color: var(--good);
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--verdigris);
   }
   #plinko-skip {
     border-color: var(--line);
-    color: var(--dim);
+    color: var(--chalk-dim);
   }
   #plinko-skip:hover {
-    background: rgba(139,147,167,0.1);
+    background: rgba(168, 152, 119, 0.1);
+    color: var(--chalk);
   }
   #plinko-return {
-    border-color: var(--good);
-    color: var(--good);
+    border-color: var(--verdigris);
+    color: var(--verdigris);
   }
   #plinko-return:hover {
-    background: rgba(125,255,158,0.1);
+    background: rgba(134, 161, 132, 0.12);
+  }
+
+  .station-record {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    color: var(--chalk-dim);
+    font-feature-settings: "tnum" 1;
+  }
+  .station-record b { color: var(--brass); font-weight: 700; }
+  .station-record[hidden] { display: none; }
+
+  .tint-row { display: flex; gap: 10px; align-items: center; justify-content: center; }
+  .tint-label {
+    font-family: var(--body); font-weight: 700; font-size: 9px;
+    letter-spacing: 0.12em; text-transform: uppercase; color: var(--chalk-faint);
+  }
+  .tint-swatch {
+    width: 20px; height: 20px;
+    border: 1px solid var(--line);
+    background: var(--swatch, var(--chalk));
+    cursor: pointer;
+    padding: 0;
+    transition: border-color 0.2s var(--ease), transform 0.12s var(--ease);
+  }
+  .tint-swatch:hover { transform: scale(1.12); }
+  .tint-swatch.active { border-color: var(--chalk); border-width: 2px; }
+
+  .mode-row { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+  .mode-btn { padding: 7px 12px; font-size: 9px; letter-spacing: 0.06em; }
+  .mode-btn.active { color: var(--brass); border-color: var(--brass); background: var(--brass-dim); }
+
+  .teams-check {
+    display: flex; align-items: center; gap: 8px; cursor: pointer;
+    font-family: var(--body); font-weight: 600; font-size: 11px;
+    letter-spacing: 0.04em; text-transform: uppercase; color: var(--chalk-dim);
+  }
+
+  #ui-match {
+    margin-top: 4px; font-family: var(--mono); font-size: 11px; color: var(--brass);
+  }
+
+  .settings-row {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px; padding: 8px 4px; border-bottom: 1px solid var(--line-soft);
+  }
+  .settings-row:last-child { border-bottom: none; }
+  .settings-row-label {
+    font-family: var(--body); font-weight: 600; font-size: 11px;
+    letter-spacing: 0.04em; text-transform: uppercase; color: var(--chalk);
+  }
+  .settings-row-control { display: flex; align-items: center; gap: 8px; }
+  .quality-toggle {
+    padding: 7px 12px; font-size: 10px; letter-spacing: 0.06em;
+  }
+  input[type=range] {
+    -webkit-appearance: none; appearance: none;
+    width: 110px; height: 2px; background: var(--line);
+    outline: none; cursor: pointer;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none;
+    width: 13px; height: 13px; background: var(--brass); border-radius: 0;
+    cursor: pointer;
+  }
+  input[type=range]::-moz-range-thumb {
+    width: 13px; height: 13px; background: var(--brass); border: none; border-radius: 0;
+    cursor: pointer;
+  }
+  input[type=checkbox] {
+    -webkit-appearance: none; appearance: none;
+    width: 16px; height: 16px;
+    border: 1px solid var(--line); background: var(--void);
+    cursor: pointer; position: relative;
+  }
+  input[type=checkbox]:checked { border-color: var(--brass); background: var(--brass-dim); }
+  input[type=checkbox]:checked::after {
+    content: ""; position: absolute; left: 3px; top: 3px; width: 8px; height: 8px; background: var(--brass);
+  }
+
+  #killstreak {
+    position: fixed; top: 84px; left: 50%; transform: translateX(-50%) translateY(-6px);
+    z-index: 13; pointer-events: none;
+    font-family: var(--display); font-weight: 500; font-size: 30px;
+    letter-spacing: 0.02em; text-transform: uppercase;
+    color: var(--brass);
+    text-shadow: 0 2px 0 rgba(0, 0, 0, 0.6);
+    opacity: 0;
+    transition: opacity 0.18s var(--ease), transform 0.18s var(--ease);
+  }
+  #killstreak.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  #tutorial {
+    position: fixed; left: 16px; bottom: 60px; z-index: 14;
+    width: min(80vw, 320px);
+    padding: 14px 16px;
+    background: var(--void-2);
+    border: 1px solid var(--brass);
+    text-align: left;
+    transition: opacity 0.4s var(--ease), transform 0.4s var(--ease);
+  }
+  #tutorial.gone { opacity: 0; transform: translateY(8px); pointer-events: none; }
+  #tutorial .tutorial-title {
+    font-family: var(--body); font-weight: 700; font-size: 10px;
+    letter-spacing: 0.14em; text-transform: uppercase; color: var(--brass);
+    margin-bottom: 6px;
+  }
+  #tutorial .tutorial-body {
+    font-family: var(--body); font-size: 12px; line-height: 1.5; color: var(--chalk-dim);
+    margin-bottom: 10px;
+  }
+  #tutorial button { padding: 8px 16px; font-size: 10px; }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.001s !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001s !important;
+    }
   }
 </style>
 </head>
 <body>
+<!--
+THESIS: an eclipse-observation field kit, not another dark-editorial AI template — stencilled
+crate lettering, brass instrument readouts, a countdown that runs out, refuses hairline-serif-
+tracked-mono sameness.
+OWN-WORLD: void #100e09 ground, brass #c88b3f + verdigris #86a184 + oxide #a5432f accents;
+Big Shoulders Stencil display, Archivo body, Courier Prime for measured data, Special Elite
+for dispatch text; square-cornered manifest panels, no italics, no glow-hairline chrome.
+STORY: a solo observer opens a station (room), watches real gravity consume the field, and
+either logs a bigger mass or gets eclipsed by a rival station.
+FIRST VIEWPORT: stencilled BLACKHOLE title centered, brass rivet divider, expedition brief
+tagline, SOLO/OPEN STATION controls, manifest-style token + shop + quest panels below.
+FORM: eclipse expedition ephemera, direction 7 of 7 grounded candidates, seed 37722a5a.
+FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review,
+the verdict, DESIGN.md, and every shipping raster carrying its provenance.
+-->
 <canvas id="game"></canvas>
+<div id="grain" aria-hidden="true"></div>
 
 <div id="hud">
+  <div id="live"><span class="dot"></span>FIELD LIVE</div>
   <div class="big">MASS <span id="ui-mass">0</span></div>
   <div><span class="k">X</span> <span id="ui-x">0</span> &nbsp; <span class="k">Y</span> <span id="ui-y">0</span></div>
   <div><span class="k">FPS</span> <span id="ui-fps">0</span> &nbsp; <span class="k">ENT</span> <span id="ui-ent">0</span></div>
   <div><span class="k">TIME</span> <span id="ui-time">0:00</span> &nbsp; <span class="k">EATEN</span> <span id="ui-eaten">0</span></div>
+  <div id="ui-buffs"></div>
+  <div id="ui-match"></div>
 </div>
 
 <div id="board">
-  <div class="board-header">SINGULARITIES</div>
+  <div class="board-header">STATION ROSTER</div>
   <div id="ui-board"></div>
 </div>
 <div id="feed"></div>
+<div id="killstreak"></div>
+<div id="tutorial" class="gone">
+  <div class="tutorial-title">FIELD NOTE</div>
+  <div class="tutorial-body">Consume anything smaller. Flee anything bigger. Hold shift to boost — it costs mass, so spend it to escape or to close a gap.</div>
+  <button id="tutorial-dismiss">UNDERSTOOD</button>
+</div>
 
-<div id="sound">SOUND ON</div>
-<div id="roomtag" class="gone">ROOM <b id="room-code">—</b> · TAP TO COPY</div><div class="screen" id="menu">
-  <h1>BLACKHOLE</h1>
+<div id="sound">AUDIO ON</div>
+<div id="roomtag" class="gone">STATION <b id="room-code">—</b> · TAP TO COPY</div><div class="screen" id="menu">
+  <h1>BLACK<em>HOLE</em></h1>
   <div class="divider"></div>
-  <div class="tagline">SWALLOW DUST. THEN ASTEROIDS. THEN PLANETS.<br>THEN EVERYONE ELSE.</div>
-  <input type="text" id="name" maxlength="12" placeholder="YOUR NAME" autocomplete="off" spellcheck="false" />
-  <div class="row">
-    <button id="play">SOLO</button>
-    <button id="create">CREATE ROOM</button>
+  <div class="tagline">OBSERVATION BRIEF: CONSUME DUST. THEN ASTEROIDS. THEN PLANETS.<br>THEN EVERY OTHER STATION.</div>
+  <div class="station-record" id="station-record" hidden>BEST MASS <b id="record-mass">0</b> &nbsp; LONGEST WATCH <b id="record-time">0:00</b></div>
+  <input type="text" id="name" maxlength="12" placeholder="OBSERVER NAME" autocomplete="off" spellcheck="false" />
+  <div class="tint-row">
+    <span class="tint-label">MODE</span>
+    <div class="mode-row" id="mode-row">
+      <button type="button" class="mode-btn active" data-mode="classic">CLASSIC</button>
+      <button type="button" class="mode-btn" data-mode="timed">TIMED</button>
+      <button type="button" class="mode-btn" data-mode="elimination">LAST STANDING</button>
+    </div>
+  </div>
+  <div class="tint-row">
+    <span class="tint-label">STATION</span>
+    <label class="teams-check"><input type="checkbox" id="teams-toggle" /> TEAMS (RED VS BLUE)</label>
   </div>
   <div class="row">
-    <input type="text" id="room" maxlength="6" placeholder="ROOM CODE" autocomplete="off" spellcheck="false" />
-    <button id="join">JOIN</button>
+    <button id="play">SOLO WATCH</button>
+    <button id="create">OPEN STATION</button>
+  </div>
+  <div class="row">
+    <input type="text" id="room" maxlength="6" placeholder="STATION CODE" autocomplete="off" spellcheck="false" />
+    <button id="join">JOIN STATION</button>
+  </div>
+  <div class="row">
+    <button id="daily">DAILY CHALLENGE <span id="daily-date"></span></button>
+  </div>
+  <div class="tint-row">
+    <span class="tint-label">TINT</span>
+    <div id="tint-swatches"></div>
   </div>
   <div class="token-balance-display">TOKENS <b id="token-balance">0</b></div>
   <details class="shop-container">
-    <summary class="shop-summary">COSMETICS SHOP</summary>
+    <summary class="shop-summary">FIELD KIT</summary>
     <div class="cosmetics-shop" id="cosmetics-shop"></div>
   </details>
   <details class="quest-container">
-    <summary class="quest-summary">QUESTS</summary>
+    <summary class="quest-summary">EXPEDITION LOG</summary>
     <div class="quest-log" id="quest-log"></div>
   </details>
+  <details class="settings-container">
+    <summary class="settings-summary">STATION SETTINGS</summary>
+    <div class="settings-panel">
+      <div class="settings-row">
+        <span class="settings-row-label">Rendering</span>
+        <div class="settings-row-control"><button class="quality-toggle" id="quality-toggle">HIGH</button></div>
+      </div>
+      <div class="settings-row">
+        <span class="settings-row-label">Volume</span>
+        <div class="settings-row-control"><input type="range" id="volume-slider" min="0" max="100" value="90" /></div>
+      </div>
+      <div class="settings-row">
+        <span class="settings-row-label">Minimap</span>
+        <div class="settings-row-control"><input type="checkbox" id="minimap-toggle" checked /></div>
+      </div>
+    </div>
+  </details>
   <div class="status" id="status"></div>
-  <div class="hint">MOVE WITH THE MOUSE</div>
+  <div class="hint">MOVE WITH THE MOUSE · HOLD SHIFT TO BOOST</div>
 </div><div class="screen gone" id="death">
-  <h1>DEVOURED</h1>
-  <div class="killer">BY <b id="d-killer">—</b></div>
+  <h1 id="death-title">ECLIPSE<em>D</em></h1>
+  <div class="killer" id="death-killer-line">OBSCURED BY <b id="d-killer">—</b></div>
   <div class="divider"></div>
   <div class="stats">
     <div class="stat"><div class="v" id="d-mass">0</div><div class="l">PEAK MASS</div></div>
     <div class="stat"><div class="v" id="d-rank">—</div><div class="l">BEST RANK</div></div>
-    <div class="stat"><div class="v" id="d-time">0:00</div><div class="l">SURVIVED</div></div>
-    <div class="stat"><div class="v" id="d-eaten">0</div><div class="l">ABSORBED</div></div>
+    <div class="stat"><div class="v" id="d-time">0:00</div><div class="l">OBSERVED</div></div>
+    <div class="stat"><div class="v" id="d-eaten">0</div><div class="l">LOGGED</div></div>
   </div>
   <div class="divider"></div>
   <div class="run-reward" id="run-reward"></div>
   <div class="plinko-section" id="plinko-section" hidden>
-    <div class="plinko-title">BONUS ROUND — CATCH THE MULTIPLIER</div>
+    <div class="plinko-title">SALVAGE DRAW — CATCH THE MULTIPLIER</div>
     <canvas class="plinko-canvas" id="plinko-canvas" width="560" height="400"></canvas>
     <div class="plinko-status" id="plinko-status"></div>
     <div class="row">
@@ -395,7 +777,7 @@
       <button id="plinko-skip">TAKE 1x</button>
     </div>
   </div>
-  <button id="plinko-return" hidden>RETURN TO MENU</button>
+  <button id="plinko-return" hidden>RETURN TO STATION</button>
   <button id="respawn">COLLAPSE AGAIN</button>
   <div class="hint">OR PRESS SPACE</div>
 </div>
@@ -413,10 +795,12 @@
 <script>
 "use strict";
 
-
-let PROG = null;    
-let PAUSED = false; 
-
+let PROG = null;
+let PAUSED = false;
+let LOW_QUALITY = false;
+const TEAM_NAMES = ["RED", "BLUE"];
+const TEAM_TAGS = ["[R]", "[B]"];
+const TEAM_COLORS = ["#d9605a", "#5a8fd9"];
 
 
 class GameAudio {
@@ -424,10 +808,10 @@ class GameAudio {
     this.ctx = null;
     this.enabled = true;
     this.ready = false;
-    this.lastAbsorb = 0;     
+    this.lastAbsorb = 0;
+    this.volume = 0.9;
   }
 
-  
 
   unlock() {
     if (this.ready) return;
@@ -437,10 +821,10 @@ class GameAudio {
     const c = this.ctx;
 
     this.master = c.createGain();
-    this.master.gain.value = 0.9;
+    this.master.gain.value = this.enabled ? this.volume : 0;
     this.master.connect(c.destination);
 
-    
+
     this.bus = c.createDynamicsCompressor();
     this.bus.threshold.value = -18;
     this.bus.ratio.value = 5;
@@ -448,8 +832,7 @@ class GameAudio {
     this.bus.release.value = 0.22;
     this.bus.connect(this.master);
 
-    
-    
+
     const len = c.sampleRate * 2;
     this.noise = c.createBuffer(1, len, c.sampleRate);
     const d = this.noise.getChannelData(0);
@@ -464,10 +847,14 @@ class GameAudio {
 
   setEnabled(v) {
     this.enabled = v;
-    if (this.ready) this.master.gain.setTargetAtTime(v ? 0.9 : 0, this.t, 0.05);
+    if (this.ready) this.master.gain.setTargetAtTime(v ? this.volume : 0, this.t, 0.05);
   }
 
-  
+  setVolume(v) {
+    this.volume = clamp(v, 0, 1);
+    if (this.ready && this.enabled) this.master.gain.setTargetAtTime(this.volume, this.t, 0.05);
+  }
+
 
   startAmbience() {
     const c = this.ctx, t = this.t;
@@ -478,7 +865,7 @@ class GameAudio {
       const o = c.createOscillator();
       o.type = "sine"; o.frequency.value = f * (i ? 1.003 : 1);
       const og = c.createGain(); og.gain.value = i ? 0.35 : 0.5;
-      
+
       const lfo = c.createOscillator(); lfo.frequency.value = 0.05 + i * 0.03;
       const lg = c.createGain(); lg.gain.value = 0.22;
       lfo.connect(lg); lg.connect(og.gain); lfo.start();
@@ -494,33 +881,31 @@ class GameAudio {
     this.ambientGain = g;
   }
 
-  
 
   atten(dist, viewRadius) {
     if (dist == null) return 1;
     return clamp(1 - dist / (viewRadius * 1.9), 0, 1);
   }
 
-  
 
   absorb(victimRadius, dist, viewRadius, isPlayerKill) {
     if (!this.on) return;
     const now = this.t;
-    
+
     if (victimRadius < 8 && now - this.lastAbsorb < 0.028) return;
     this.lastAbsorb = now;
 
     const c = this.ctx;
-    const size = clamp(victimRadius / 60, 0.02, 1.6);        
+    const size = clamp(victimRadius / 60, 0.02, 1.6);
     const vol = this.atten(dist, viewRadius) * (0.16 + size * 0.55) * (isPlayerKill ? 1.5 : 1);
     if (vol < 0.006) return;
 
     const dur = 0.10 + size * 0.55;
-    
+
     const f0 = 480 / (0.35 + size * 1.7);
     const f1 = f0 * 0.28;
 
-    
+
     const o = c.createOscillator();
     o.type = size > 0.5 ? "sine" : "triangle";
     o.frequency.setValueAtTime(f0, now);
@@ -532,7 +917,7 @@ class GameAudio {
     o.connect(og); og.connect(this.bus);
     o.start(now); o.stop(now + dur + 0.05);
 
-    
+
     const n = c.createBufferSource();
     n.buffer = this.noise;
     n.playbackRate.value = rand(0.8, 1.25);
@@ -547,7 +932,7 @@ class GameAudio {
     n.connect(nf); nf.connect(ng); ng.connect(this.bus);
     n.start(now); n.stop(now + dur + 0.05);
 
-    
+
     if (size > 0.35) {
       const s = c.createOscillator();
       s.type = "sine";
@@ -562,7 +947,6 @@ class GameAudio {
     }
   }
 
-  
 
   danger() {
     if (!this.on) return;
@@ -580,7 +964,6 @@ class GameAudio {
     o.start(now); o.stop(now + 0.65);
   }
 
-  
 
   death() {
     if (!this.on) return;
@@ -617,7 +1000,6 @@ class GameAudio {
     n.start(now); n.stop(now + 2.1);
   }
 
-  
 
   spawn() {
     if (!this.on) return;
@@ -645,27 +1027,41 @@ class GameAudio {
     o.connect(g); g.connect(this.bus);
     o.start(now); o.stop(now + 0.1);
   }
+
+  power(kind) {
+    if (!this.on) return;
+    const c = this.ctx, now = this.t;
+    const base = kind === "speed" ? 520 : kind === "magnet" ? 340 : 420;
+    [1, 1.5, 2].forEach((mul, i) => {
+      const o = c.createOscillator();
+      o.type = "triangle";
+      o.frequency.setValueAtTime(base * mul, now + i * 0.05);
+      o.frequency.exponentialRampToValueAtTime(base * mul * 1.4, now + i * 0.05 + 0.12);
+      const g = c.createGain();
+      g.gain.setValueAtTime(0.0001, now + i * 0.05);
+      g.gain.exponentialRampToValueAtTime(0.1, now + i * 0.05 + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, now + i * 0.05 + 0.22);
+      o.connect(g); g.connect(this.bus);
+      o.start(now + i * 0.05); o.stop(now + i * 0.05 + 0.25);
+    });
+  }
 }
-
-
-
 
 
 class LocalMouseController {
   constructor(input, camera) { this.input = input; this.camera = camera; }
   update(player) {
-    
+    player.boost = this.input.boost;
     if (PAUSED) return;
 
     const k = this.input.keys;
     if (k.up || k.down || k.left || k.right) {
-      
-      
-      
+
+
       const dx = (k.right ? 1 : 0) - (k.left ? 1 : 0);
       const dy = (k.down ? 1 : 0) - (k.up ? 1 : 0);
       const d = Math.hypot(dx, dy) || 1;
-      const reach = 320 + player.r * 1.8;   
+      const reach = 320 + player.r * 1.8;   // far enough to clear the settle deadzone
       player.intentX = player.x + (dx / d) * reach;
       player.intentY = player.y + (dy / d) * reach;
       return;
@@ -673,11 +1069,10 @@ class LocalMouseController {
 
     const p = this.camera.screenToWorld(this.input.mx, this.input.my);
     player.intentX = p.x; player.intentY = p.y;
-    
-    
+
+
   }
 }
-
 
 
 class Input {
@@ -685,12 +1080,14 @@ class Input {
     this.mx = window.innerWidth / 2;
     this.my = window.innerHeight / 2;
     this.moved = false;
-    
+    this.boost = false;
     this.keys = { up: false, down: false, left: false, right: false };
     const set = (x, y) => { this.mx = x; this.my = y; this.moved = true; };
     window.addEventListener("mousemove", e => set(e.clientX, e.clientY), { passive: true });
     window.addEventListener("touchstart", e => { const t = e.touches[0]; if (t) set(t.clientX, t.clientY); }, { passive: true });
     window.addEventListener("touchmove",  e => { const t = e.touches[0]; if (t) set(t.clientX, t.clientY); }, { passive: true });
+    window.addEventListener("mousedown", e => { if (e.button === 0) this.boost = true; });
+    window.addEventListener("mouseup", e => { if (e.button === 0) this.boost = false; });
 
     const keyMap = {
       ArrowUp: "up", KeyW: "up",
@@ -702,22 +1099,30 @@ class Input {
       const a = document.activeElement;
       return !!(a && (a.tagName === "INPUT" || a.tagName === "TEXTAREA"));
     };
+    const isBoostKey = e => e.code === "Space" || e.code === "ShiftLeft" || e.code === "ShiftRight";
     window.addEventListener("keydown", e => {
+      if (isBoostKey(e)) {
+        if (typing()) return;
+        e.preventDefault();
+        this.boost = true;
+        return;
+      }
       const k = keyMap[e.code];
       if (!k || typing()) return;
-      e.preventDefault();                
+      e.preventDefault();
       this.keys[k] = true;
     });
     window.addEventListener("keyup", e => {
+      if (isBoostKey(e)) { this.boost = false; return; }
       const k = keyMap[e.code];
       if (k) this.keys[k] = false;
     });
-    window.addEventListener("blur", () => {   
+    window.addEventListener("blur", () => {
       this.keys.up = this.keys.down = this.keys.left = this.keys.right = false;
+      this.boost = false;
     });
   }
 }
-
 
 
 class Camera {
@@ -726,14 +1131,14 @@ class Camera {
     this.zoom = 1; this.targetZoom = 1;
     this.vw = window.innerWidth; this.vh = window.innerHeight;
     this.shake = 0; this.shx = 0; this.shy = 0;
-    this.hard = true;         
+    this.hard = true;
   }
   resize(w, h) { this.vw = w; this.vh = h; }
 
   follow(target, dt) {
     if (!target) return;
     if (this.hard) { this.x = target.x; this.y = target.y; }
-    else {          
+    else {
       this.x = damp(this.x, target.x, 2.2, dt);
       this.y = damp(this.y, target.y, 2.2, dt);
     }
@@ -760,13 +1165,14 @@ class Camera {
 }
 
 
-
 class Renderer {
   constructor(canvas, camera) {
     this.canvas = canvas;
     this.ctx = canvas.getContext("2d", { alpha: false });
     this.camera = camera;
     this.dpr = 1;
+    this.shadowScale = 1;
+    this.showMinimap = true;
     this.stars = [];
     this.buildStarfield();
     this.resize();
@@ -774,8 +1180,12 @@ class Renderer {
   }
 
   resize() {
-    this.dpr = Math.min(window.devicePixelRatio || 1, 2);   
-    const w = window.innerWidth, h = window.innerHeight;
+    this.dpr = Math.min(window.devicePixelRatio || 1, LOW_QUALITY ? 1 : 2);
+    let w = window.innerWidth, h = window.innerHeight;
+    if (!w || !h) {                       // not laid out yet — use the document box
+      w = document.documentElement.clientWidth;
+      h = document.documentElement.clientHeight;
+    }
     this.canvas.width = Math.floor(w * this.dpr);
     this.canvas.height = Math.floor(h * this.dpr);
     this.canvas.style.width = w + "px";
@@ -800,21 +1210,19 @@ class Renderer {
       }
       return { pts, speed: layer.speed, tile: TILE };
     });
-  }
-
-  draw(game) {
+  }  draw(game) {
+    if (!this.canvas.width || !this.canvas.height) this.resize();   // heal a 0x0 canvas
     const ctx = this.ctx, cam = this.camera;
 
-    
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.globalCompositeOperation = "source-over";
     ctx.fillStyle = "rgba(2, 2, 8, " + CFG.RENDER.TRAIL_FADE + ")";
     ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
-    
+
     this.drawStars(game.time);
 
-    
+
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
     ctx.translate(cam.vw / 2 + cam.shx, cam.vh / 2 + cam.shy);
     ctx.scale(cam.zoom, cam.zoom);
@@ -833,21 +1241,22 @@ class Renderer {
       if (e.x < vb.x0 || e.x > vb.x1 || e.y < vb.y0 || e.y > vb.y1) continue;
       if (e.type === "asteroid") this.drawAsteroid(ctx, e);
       else if (e.type === "planet") this.drawPlanet(ctx, e);
+      else if (e.type === "rogue") this.drawRogue(ctx, e, game.time);
+      else if (e.type === "power") this.drawPowerUp(ctx, e, game.time);
     }
 
     ctx.globalCompositeOperation = "lighter";
     for (const p of game.particles) this.drawParticle(ctx, p);
     ctx.globalCompositeOperation = "source-over";
 
-    const holes = game.players.slice().sort((a, b) => a.r - b.r);   
+    const holes = game.players.slice().sort((a, b) => a.r - b.r);
     for (const p of holes) this.drawBlackHole(ctx, p, game.time);
 
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
     this.drawVignette(ctx, cam.vw, cam.vh);
-    this.drawMinimap(ctx, game);
+    if (this.showMinimap) this.drawMinimap(ctx, game);
   }
 
-  
 
   drawStars(time) {
     const ctx = this.ctx, cam = this.camera;
@@ -896,11 +1305,10 @@ class Renderer {
     const tw = 0.65 + 0.35 * Math.sin(time * 3.1 + e.twinkle);
     ctx.save();
     ctx.translate(e.x, e.y);
-    ctx.rotate(e.stretchAng);                    
-    ctx.scale(e.stretch, 1 / Math.sqrt(e.stretch));   
+    ctx.rotate(e.stretchAng);
+    ctx.scale(e.stretch, 1 / Math.sqrt(e.stretch));
     ctx.globalAlpha = 0.9 * tw;
     ctx.fillStyle = e.tint;
-    ctx.shadowBlur = 12; ctx.shadowColor = e.tint;
     ctx.beginPath(); ctx.arc(0, 0, e.r, 0, TAU); ctx.fill();
     ctx.globalAlpha = 0.28 * tw;
     ctx.beginPath(); ctx.arc(0, 0, e.r * 2.6, 0, TAU); ctx.fill();
@@ -913,7 +1321,7 @@ class Renderer {
     ctx.translate(e.x, e.y);
     ctx.rotate(e.stretchAng);
     ctx.scale(e.stretch, 1 / Math.sqrt(e.stretch));
-    ctx.rotate(e.angle - e.stretchAng);          
+    ctx.rotate(e.angle - e.stretchAng);
 
     const n = e.lumps.length;
     ctx.beginPath();
@@ -931,11 +1339,11 @@ class Renderer {
     ctx.lineWidth = Math.max(0.6, e.r * 0.07);
     ctx.stroke();
 
-    if (e.stretch > 1.25) {                      
+    if (e.stretch > 1.25) {
       ctx.globalCompositeOperation = "lighter";
       ctx.globalAlpha = clamp((e.stretch - 1.25) / 2.6, 0, 0.85);
       ctx.strokeStyle = "#ffb06a";
-      ctx.shadowBlur = 18; ctx.shadowColor = "#ff8a3a";
+      ctx.shadowBlur = 10; ctx.shadowColor = "#ff8a3a";
       ctx.stroke();
     }
     ctx.restore();
@@ -964,7 +1372,7 @@ class Renderer {
     ctx.fillStyle = g;
     ctx.beginPath(); ctx.arc(0, 0, e.r, 0, TAU); ctx.fill();
 
-    ctx.save();                                   
+    ctx.save();
     ctx.beginPath(); ctx.arc(0, 0, e.r, 0, TAU); ctx.clip();
     ctx.rotate(e.angle);
     ctx.globalAlpha = 0.16; ctx.fillStyle = e.pal[2];
@@ -972,7 +1380,7 @@ class Renderer {
     ctx.restore();
 
     ctx.globalAlpha = 1;
-    ctx.globalCompositeOperation = "lighter";     
+    ctx.globalCompositeOperation = "lighter";
     const ag = ctx.createRadialGradient(0, 0, e.r * 0.88, 0, 0, e.r * 1.3);
     ag.addColorStop(0, "rgba(0,0,0,0)");
     ag.addColorStop(0.55, "rgba(150,200,255,0.16)");
@@ -984,32 +1392,128 @@ class Renderer {
     ctx.globalAlpha = 1;
   }
 
+  drawPowerUp(ctx, e, time) {
+    const r = e.r, pulse = 1 + 0.15 * Math.sin(time * 3 + e.id);
+    ctx.save();
+    ctx.globalCompositeOperation = "lighter";
+    const halo = ctx.createRadialGradient(e.x, e.y, r * 0.6, e.x, e.y, r * 2.6);
+    halo.addColorStop(0, this.rgba(e.tint, 0.5));
+    halo.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = halo;
+    ctx.beginPath(); ctx.arc(e.x, e.y, r * 2.6, 0, TAU); ctx.fill();
+    ctx.restore();
+
+    ctx.save();
+    ctx.translate(e.x, e.y);
+    ctx.globalCompositeOperation = "source-over";
+    ctx.fillStyle = "#0d0b06";
+    ctx.beginPath(); ctx.arc(0, 0, r * pulse, 0, TAU); ctx.fill();
+    ctx.strokeStyle = e.tint;
+    ctx.lineWidth = Math.max(1.4, r * 0.16);
+    ctx.beginPath(); ctx.arc(0, 0, r * pulse, 0, TAU); ctx.stroke();
+
+    ctx.lineWidth = Math.max(1.2, r * 0.14);
+    ctx.lineCap = "round"; ctx.lineJoin = "round";
+
+    if (e.powerKind === "speed") {
+      for (let k = -1; k <= 1; k += 2) {
+        ctx.beginPath();
+        ctx.moveTo(-r * 0.32 + k * r * 0.22, -r * 0.42);
+        ctx.lineTo(r * 0.18 + k * r * 0.22, 0);
+        ctx.lineTo(-r * 0.32 + k * r * 0.22, r * 0.42);
+        ctx.stroke();
+      }
+    } else if (e.powerKind === "magnet") {
+      ctx.beginPath();
+      ctx.arc(0, r * 0.05, r * 0.42, Math.PI * 0.05, Math.PI * 0.95, false);
+      ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(-r * 0.42, r * 0.05); ctx.lineTo(-r * 0.42, r * 0.5); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(r * 0.42, r * 0.05); ctx.lineTo(r * 0.42, r * 0.5); ctx.stroke();
+    } else {
+      ctx.beginPath();
+      ctx.moveTo(0, -r * 0.46);
+      ctx.lineTo(r * 0.4, -r * 0.22);
+      ctx.lineTo(r * 0.4, r * 0.14);
+      ctx.quadraticCurveTo(r * 0.4, r * 0.44, 0, r * 0.5);
+      ctx.quadraticCurveTo(-r * 0.4, r * 0.44, -r * 0.4, r * 0.14);
+      ctx.lineTo(-r * 0.4, -r * 0.22);
+      ctx.closePath();
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  drawRogue(ctx, e, time) {
+    const r = e.r, pulse = 1 + 0.12 * Math.sin(time * 2.6 + e.id);
+    ctx.save();
+    ctx.globalCompositeOperation = "lighter";
+    const halo = ctx.createRadialGradient(e.x, e.y, r * 0.8, e.x, e.y, r * 3.2);
+    halo.addColorStop(0, this.rgba(e.tint, 0.35));
+    halo.addColorStop(0.5, this.rgba(e.tint, 0.10));
+    halo.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = halo;
+    ctx.beginPath(); ctx.arc(e.x, e.y, r * 3.2, 0, TAU); ctx.fill();
+    ctx.restore();
+
+    ctx.save();
+    ctx.globalAlpha = 0.55 + 0.35 * (pulse - 1) * 4;
+    ctx.strokeStyle = e.tint;
+    ctx.lineWidth = Math.max(1.5, r * 0.05);
+    ctx.setLineDash([r * 0.6, r * 0.35]);
+    ctx.lineDashOffset = -time * r * 0.8;
+    ctx.beginPath(); ctx.arc(e.x, e.y, r * 1.5 + (pulse - 1) * r * 2, 0, TAU); ctx.stroke();
+    ctx.restore();
+
+    ctx.save();
+    ctx.fillStyle = "#16040a";
+    ctx.beginPath(); ctx.arc(e.x, e.y, r, 0, TAU); ctx.fill();
+    ctx.restore();
+
+    ctx.save();
+    ctx.translate(e.x, e.y);
+    ctx.rotate(time * 1.2 + e.id);
+    ctx.globalCompositeOperation = "lighter";
+    ctx.strokeStyle = e.tint;
+    ctx.lineWidth = Math.max(1.2, r * 0.09);
+    ctx.globalAlpha = 0.85;
+    for (let k = 0; k < 3; k++) {
+      const a0 = k * TAU / 3;
+      ctx.beginPath(); ctx.arc(0, 0, r * 1.25, a0, a0 + 1.2); ctx.stroke();
+    }
+    ctx.restore();
+
+    ctx.save();
+    const fs = Math.max(12 / this.camera.zoom, r * 0.3);
+    ctx.font = "700 " + fs.toFixed(1) + "px ui-monospace, Menlo, monospace";
+    ctx.textAlign = "center";
+    ctx.fillStyle = "#ff8a9a";
+    ctx.fillText("\u26A0 " + e.name, e.x, e.y + r + fs * 1.3);
+    ctx.restore();
+  }
+
   drawParticle(ctx, p) {
     const t = p.life / p.maxLife;
     ctx.globalAlpha = t * t;
     ctx.fillStyle = p.color;
-    ctx.shadowBlur = 14; ctx.shadowColor = p.color;
     ctx.beginPath(); ctx.arc(p.x, p.y, p.size * (0.35 + t * 0.65), 0, TAU); ctx.fill();
-    ctx.globalAlpha = 1; ctx.shadowBlur = 0;
+    ctx.globalAlpha = 1;
   }
 
-  
 
   drawBlackHole(ctx, p, time) {
     const r = p.r;
     const pulse = 1 + 0.055 * Math.sin(p.pulse * 1.6) + 0.03 * Math.sin(p.pulse * 3.7);
 
-    
+
     const cos = (p.isLocal && PROG) ? PROG.equippedColors() : null;
     const diskColor = (cos && cos.disk) || p.color;
     const ringColor = (cos && cos.trail) || "#ffffff";
     const orbColor = (cos && cos.orb) || null;
-    
-    
-    
+
+
     const tint = diskColor;
 
-    
+
     ctx.save();
     ctx.globalCompositeOperation = "lighter";
     const haloR = r * 6.2;
@@ -1022,7 +1526,7 @@ class Renderer {
     ctx.beginPath(); ctx.arc(p.x, p.y, haloR, 0, TAU); ctx.fill();
     ctx.restore();
 
-    
+
     const tr = p.trail;
     if (tr.length >= 6) {
       ctx.save();
@@ -1041,7 +1545,7 @@ class Renderer {
       ctx.restore();
     }
 
-    
+
     ctx.save();
     ctx.translate(p.x, p.y);
     ctx.globalCompositeOperation = "lighter";
@@ -1054,10 +1558,10 @@ class Renderer {
     disk.addColorStop(0.70, "rgba(120,70,220,0.16)");
     disk.addColorStop(1.00, "rgba(0,0,0,0)");
     ctx.fillStyle = disk;
-    ctx.shadowBlur = clamp(r * 1.6, 18, 40); ctx.shadowColor = tint;   
+    ctx.shadowBlur = clamp(r * 1.1, 10, 26) * this.shadowScale; ctx.shadowColor = tint;
     ctx.beginPath(); ctx.arc(0, 0, diskR, 0, TAU); ctx.fill();
 
-    ctx.shadowBlur = clamp(r * 0.9, 10, 40);      
+    ctx.shadowBlur = clamp(r * 0.6, 6, 22) * this.shadowScale;
     for (let k = 0; k < 2; k++) {
       const a0 = k * Math.PI + Math.sin(time * 0.7 + k) * 0.25;
       ctx.globalAlpha = 0.42;
@@ -1068,16 +1572,16 @@ class Renderer {
     ctx.globalAlpha = 1;
     ctx.restore();
 
-    
+
     ctx.save();
     ctx.globalCompositeOperation = "lighter";
     ctx.strokeStyle = ringColor; ctx.globalAlpha = 0.85;
     ctx.lineWidth = Math.max(0.8, r * 0.055);
-    ctx.shadowBlur = clamp(r * 1.1, 12, 40); ctx.shadowColor = tint;
+    ctx.shadowBlur = clamp(r * 0.8, 8, 26) * this.shadowScale; ctx.shadowColor = tint;
     ctx.beginPath(); ctx.arc(p.x, p.y, r * 1.045, 0, TAU); ctx.stroke();
     ctx.restore();
 
-    
+
     if (orbColor) {
       ctx.save();
       ctx.globalCompositeOperation = "lighter";
@@ -1092,7 +1596,7 @@ class Renderer {
       ctx.restore();
     }
 
-    
+
     ctx.save();
     ctx.globalCompositeOperation = "source-over";
     ctx.fillStyle = "#000000";
@@ -1103,7 +1607,7 @@ class Renderer {
     ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, TAU); ctx.fill();
     ctx.restore();
 
-    
+
     if (p.eatFlash > 0.01) {
       ctx.save();
       ctx.globalCompositeOperation = "lighter";
@@ -1111,12 +1615,12 @@ class Renderer {
       ctx.globalAlpha = p.eatFlash * 0.7;
       ctx.strokeStyle = "#ffffff";
       ctx.lineWidth = Math.max(1, r * 0.16 * p.eatFlash);
-      ctx.shadowBlur = 30; ctx.shadowColor = tint;
+      ctx.shadowBlur = 20; ctx.shadowColor = tint;
       ctx.beginPath(); ctx.arc(p.x, p.y, r * (1.1 + f * 2.4), 0, TAU); ctx.stroke();
       ctx.restore();
     }
 
-    
+
     if (p.shield > 0) {
       ctx.save();
       ctx.globalCompositeOperation = "lighter";
@@ -1126,20 +1630,35 @@ class Renderer {
       ctx.lineWidth = Math.max(1, r * 0.10);
       ctx.setLineDash([r * 0.55, r * 0.4]);
       ctx.lineDashOffset = -time * r * 1.4;
-      ctx.shadowBlur = 22; ctx.shadowColor = "#5aa0ff";
+      ctx.shadowBlur = 16; ctx.shadowColor = "#5aa0ff";
       ctx.beginPath(); ctx.arc(p.x, p.y, r * 2.0, 0, TAU); ctx.stroke();
       ctx.restore();
     }
 
-    
+    if (p.speedT > 0 || p.magnetT > 0) {
+      ctx.save();
+      ctx.globalCompositeOperation = "lighter";
+      const buffColor = p.speedT > 0 ? "#5ef0d8" : "#c98fff";
+      ctx.globalAlpha = 0.5 + 0.25 * Math.sin(time * 7);
+      ctx.strokeStyle = buffColor;
+      ctx.lineWidth = Math.max(1, r * 0.07);
+      ctx.setLineDash([r * 0.3, r * 0.22]);
+      ctx.lineDashOffset = -time * r * (p.speedT > 0 ? 3.2 : 0.9);
+      ctx.shadowBlur = 12; ctx.shadowColor = buffColor;
+      ctx.beginPath(); ctx.arc(p.x, p.y, r * 2.3, 0, TAU); ctx.stroke();
+      ctx.restore();
+    }
+
+
     ctx.save();
     const fs = Math.max(11 / this.camera.zoom, r * 0.42);
     ctx.font = "500 " + fs.toFixed(1) + "px ui-monospace, Menlo, monospace";
     ctx.textAlign = "center"; ctx.textBaseline = "middle";
     ctx.globalAlpha = p.isLocal ? 0.95 : 0.6;
-    ctx.fillStyle = p.isLocal ? "#ffffff" : "#cfe4ff";
+    ctx.fillStyle = p.team != null ? TEAM_COLORS[p.team] : (p.isLocal ? "#ffffff" : "#cfe4ff");
     ctx.shadowBlur = 12; ctx.shadowColor = "#000";
-    ctx.fillText(p.name, p.x, p.y + r + fs * 1.25);
+    const label = p.team != null ? TEAM_TAGS[p.team] + " " + p.name : p.name;
+    ctx.fillText(label, p.x, p.y + r + fs * 1.25);
     ctx.restore();
     ctx.globalAlpha = 1; ctx.shadowBlur = 0;
   }
@@ -1152,7 +1671,6 @@ class Renderer {
     ctx.fillRect(0, 0, w, h);
   }
 
-  
 
   drawMinimap(ctx, game) {
     const S = 132, pad = 16;
@@ -1167,7 +1685,7 @@ class Renderer {
     ctx.lineWidth = 1;
     ctx.strokeRect(x0 + 0.5, y0 + 0.5, S - 1, S - 1);
 
-    for (const e of game.food) {                  
+    for (const e of game.food) {
       if (e.type !== "planet") continue;
       ctx.fillStyle = "rgba(150,180,220,0.5)";
       ctx.beginPath(); ctx.arc(x0 + e.x * k, y0 + e.y * k, 1.8, 0, TAU); ctx.fill();
@@ -1181,7 +1699,7 @@ class Renderer {
       ctx.fill();
     }
 
-    ctx.globalAlpha = 0.55;                        
+    ctx.globalAlpha = 0.55;
     const vb = this.camera.viewBounds(0);
     ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 1;
     ctx.strokeRect(x0 + vb.x0 * k, y0 + vb.y0 * k, (vb.x1 - vb.x0) * k, (vb.y1 - vb.y0) * k);
@@ -1196,22 +1714,19 @@ class Renderer {
 }
 
 
-
-
-
 class HUD {
   constructor() {
     const $ = id => document.getElementById(id);
     this.mass = $("ui-mass"); this.x = $("ui-x"); this.y = $("ui-y");
     this.fps = $("ui-fps"); this.ent = $("ui-ent");
     this.time = $("ui-time"); this.eaten = $("ui-eaten");
-    this.board = $("ui-board"); this.feed = $("feed");
+    this.board = $("ui-board"); this.feed = $("feed"); this.buffs = $("ui-buffs"); this.match = $("ui-match");
     this.acc = 0; this.lastFeed = 0;
   }
 
   update(game, fps, dt) {
     this.acc += dt;
-    if (this.acc < 0.1) return;                    
+    if (this.acc < 0.1) return;
     this.acc = 0;
 
     const me = game.local;
@@ -1224,10 +1739,34 @@ class HUD {
     this.time.textContent = live ? mmss(game.time - me.spawnTime) : "0:00";
     this.eaten.textContent = me ? me.absorbed : 0;
 
+    let buffsHtml = "";
+    if (live && me.speedT > 0) buffsHtml += '<span class="buff-speed">SPEED ' + Math.ceil(me.speedT) + 's</span>';
+    if (live && me.magnetT > 0) buffsHtml += '<span class="buff-magnet">MAGNET ' + Math.ceil(me.magnetT) + 's</span>';
+    this.buffs.innerHTML = buffsHtml;
+
+    let matchText = "";
+    if (live && game.matchMode === "timed" && game.matchEndAt != null) {
+      matchText = "MATCH " + mmss(Math.max(0, game.matchEndAt - game.time));
+    } else if (live && game.matchMode === "elimination") {
+      matchText = "LAST STATION STANDING — " + (game.players.filter(p => !p.dead).length) + " LEFT";
+    }
+    if (live && game.dailyKey) matchText = "DAILY " + game.dailyKey + (matchText ? " · " + matchText : "");
+    this.match.textContent = matchText;
+
     const top = (game.ranked || game.players).slice(0, 7);
-    this.board.innerHTML = top.map((p, i) =>
-      '<div class="' + (p.isLocal ? "me" : "") + '">' + (i + 1) + ". " + esc(p.name) + " &nbsp;" + fmt(p.mass) + "</div>"
-    ).join("");
+    let boardHtml = "";
+    const teamed = game.players.filter(p => p.team != null && !p.dead);
+    if (teamed.length) {
+      const totals = [0, 0];
+      for (const p of teamed) totals[p.team] += p.mass;
+      boardHtml += '<div class="team-score"><span class="team-red">RED ' + fmt(totals[0]) +
+        '</span> vs <span class="team-blue">BLUE ' + fmt(totals[1]) + '</span></div>';
+    }
+    boardHtml += top.map((p, i) => {
+      const tag = p.team != null ? '<span style="color:' + TEAM_COLORS[p.team] + '">' + TEAM_TAGS[p.team] + '</span> ' : "";
+      return '<div class="' + (p.isLocal ? "me" : "") + '">' + (i + 1) + ". " + tag + esc(p.name) + " &nbsp;" + fmt(p.mass) + "</div>";
+    }).join("");
+    this.board.innerHTML = boardHtml;
 
     if (game.feed.length !== this.lastFeed) {
       this.lastFeed = game.feed.length;
@@ -1240,7 +1779,6 @@ class HUD {
   }
 }
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-
 
 
 class NetworkController {
@@ -1256,9 +1794,9 @@ class NetworkController {
     this.closed = false;
     this.mySpawnTime = 0;
 
-    this.buffer = [];               
-    this.current = new Map();       
-    this.entities = new Map();      
+    this.buffer = [];
+    this.current = new Map();
+    this.entities = new Map();
     this.lastIntentAt = 0;
 
     this.onjoined = null;
@@ -1266,13 +1804,12 @@ class NetworkController {
     this.ondisconnect = null;
   }
 
-  
 
   connectPeer(transport, roomCode) {
     this.closed = false;
     this.ws = transport;
     transport.onopen = () => {
-      try { transport.send(JSON.stringify({ t: "join", room: roomCode || null, name: this.name })); } catch (e) {}
+      try { transport.send(JSON.stringify({ t: "join", room: roomCode || null, name: this.name, color: this.color })); } catch (e) {}
     };
     transport.onmessage = e => {
       let msg;
@@ -1281,7 +1818,7 @@ class NetworkController {
     };
     transport.onclose = () => this.onClose();
     transport.onerror = () => {};
-    if (transport.readyState === 1 && transport.onopen) transport.onopen();   
+    if (transport.readyState === 1 && transport.onopen) transport.onopen();
   }
 
   onMessage(msg) {
@@ -1296,6 +1833,8 @@ class NetworkController {
       this.current.clear();
       this.buffer.length = 0;
       this.game.state = "playing";
+      this.game.matchMode = msg.matchMode || "classic";
+      this.game.matchEndAt = msg.matchEndAt != null ? msg.matchEndAt : null;
       if (this.onjoined) this.onjoined();
     } else if (msg.t === "s") {
       const now = performance.now();
@@ -1328,7 +1867,10 @@ class NetworkController {
     } else if (msg.kind === "death") {
       this.dead = true;
       g.state = "dead";
-      g.deathInfo = { killer: msg.killer, peakMass: msg.peakMass, rank: msg.rank, time: msg.time, absorbed: msg.absorbed, rivalsEaten: msg.rivalsEaten || 0 };
+      g.deathInfo = {
+        killer: msg.killer, matchEnd: !!msg.matchEnd, won: !!msg.won,
+        peakMass: msg.peakMass, rank: msg.rank, time: msg.time, absorbed: msg.absorbed, rivalsEaten: msg.rivalsEaten || 0
+      };
       g.deathCam = msg.killerId ? (this.entities.get(msg.killerId) || null) : null;
       g.events.push({ type: "death", hole: this.entities.get(this.myId) || null, killer: g.deathCam });
     } else if (msg.kind === "spawn") {
@@ -1338,32 +1880,34 @@ class NetworkController {
       g.deathInfo = null;
       g.deathCam = null;
       g.events.push({ type: "spawn", hole: this.entities.get(this.myId) || null });
+    } else if (msg.kind === "power") {
+      g.events.push({ type: "power", kind: msg.powerKind, hole: this.entities.get(this.myId) || null });
     }
   }
 
   onClose() {
-    if (this.closed) return;                 
+    if (this.closed) return;
     const wasLive = this.connected || !!this.room;
     this.connected = false;
     this.room = null;
     if (this.failed) {
       const code = this.failed;
       this.failed = null;
-      if (this.onerror) this.onerror(code);  
+      if (this.onerror) this.onerror(code);
     } else if (wasLive && this.ondisconnect) {
-      this.ondisconnect();                   
+      this.ondisconnect();
     } else if (this.onerror) {
-      this.onerror("connect");              
+      this.onerror("connect");
     }
   }
 
-  sendIntent(x, y) {
+  sendIntent(x, y, boost) {
     if (!this.ws || this.ws.readyState !== 1) return;
     if (this.dead || this.game.state !== "playing") return;
     const now = performance.now();
     if (now - this.lastIntentAt < 33) return;
     this.lastIntentAt = now;
-    this.ws.send(JSON.stringify({ t: "intent", x: Math.round(x), y: Math.round(y) }));
+    this.ws.send(JSON.stringify({ t: "intent", x: Math.round(x), y: Math.round(y), boost: !!boost }));
   }
 
   respawn() {
@@ -1381,14 +1925,13 @@ class NetworkController {
     this.myId = 0;
   }
 
-  
 
   update() {
     const g = this.game;
     if (this.buffer.length === 0) return;
 
     const now = performance.now();
-    const target = now - 100;                       
+    const target = now - 100;
     let a = this.buffer[0], b = this.buffer[this.buffer.length - 1];
     for (const s of this.buffer) {
       if (s.t <= target) a = s; else { b = s; break; }
@@ -1413,10 +1956,6 @@ class NetworkController {
       writeMirrorState(e, s);
       if (s.kind === "player") {
         e.isLocal = id === this.myId;
-        if (e.isLocal) {
-          e.trail.push(e.x, e.y);                  
-          while (e.trail.length > 52) e.trail.splice(0, 2);
-        }
         g.players.push(e);
       } else {
         g.food.push(e);
@@ -1437,7 +1976,6 @@ class NetworkController {
     if (g.deathCam && !this.entities.has(g.deathCam.id)) g.deathCam = null;
   }
 }
-
 
 
 function mixStates(A, B, k) {
@@ -1464,6 +2002,12 @@ function makeMirrorEntity(s) {
   }
   if (s.kind === "dust") return new Dust(s.x, s.y);
   if (s.kind === "asteroid") return new Asteroid(s.x, s.y);
+  if (s.kind === "rogue") {
+    const rg = new Rogue(s.x, s.y, massFromRadius(s.r), null);
+    rg.name = s.name || "VOID WALKER";
+    return rg;
+  }
+  if (s.kind === "power") return new PowerUp(s.x, s.y, s.powerKind || "speed");
   return new Planet(s.x, s.y);
 }
 
@@ -1481,8 +2025,12 @@ function writeMirrorState(e, s) {
     e.pulse = s.pulse == null ? 0 : s.pulse;
     e.eatFlash = s.eatFlash == null ? 0 : s.eatFlash;
     e.shield = s.shield == null ? 0 : s.shield;
+    e.speedT = s.speedT == null ? 0 : s.speedT;
+    e.magnetT = s.magnetT == null ? 0 : s.magnetT;
+    e.team = s.team == null ? null : s.team;
     e.isBot = !!s.isBot;
   }
+  if (s.powerKind !== undefined) e.powerKind = s.powerKind;
   if (s.hasRing !== undefined) e.hasRing = s.hasRing;
   if (s.ringTilt !== undefined) e.ringTilt = s.ringTilt;
   if (s.pal !== undefined) e.pal = s.pal;
@@ -1490,14 +2038,11 @@ function writeMirrorState(e, s) {
 }
 
 
-
-
-
-const MAX_PLAYERS = 16;                    
+const MAX_PLAYERS = 16;
 const PEER_PREFIX = "bh-";
 
 function genRoomCode() {
-  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";   
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   let c = "";
   for (let i = 0; i < 5; i++) c += chars[(Math.random() * chars.length) | 0];
   return c;
@@ -1508,11 +2053,10 @@ function sanitizePeerName(raw) {
 }
 
 
-
 class PeerSocket {
   constructor(conn) {
     this.conn = conn;
-    this.readyState = 0;                   
+    this.readyState = 0;
     this.onopen = this.onmessage = this.onclose = this.onerror = null;
     conn.on("open", () => { this.readyState = 1; if (this.onopen) this.onopen(); });
     conn.on("data", d => {
@@ -1530,16 +2074,15 @@ class PeerSocket {
 }
 
 
-
 class PeerHost {
   constructor(game, name, onReady, onError) {
     this.game = game;
     this.name = name;
-    this.onReady = onReady;                
-    this.onError = onError;                
+    this.onReady = onReady;
+    this.onError = onError;
     this.peer = null;
     this.roomCode = null;
-    this.members = new Map();              
+    this.members = new Map();
     this.closed = false;
     this.retry = 0;
   }
@@ -1571,12 +2114,13 @@ class PeerHost {
       let msg;
       try { msg = typeof data === "string" ? JSON.parse(data) : data; } catch (e) { return; }
       if (msg.t === "join") {
-        this.addMember(conn, msg.name);
+        this.addMember(conn, msg.name, msg.color);
       } else if (msg.t === "intent") {
         const m = this.members.get(conn);
         if (m && !m.dead && m.player.controller) {
           m.player.controller.x = Number(msg.x) || 0;
           m.player.controller.y = Number(msg.y) || 0;
+          m.player.boost = !!msg.boost;
         }
       } else if (msg.t === "respawn") {
         this.respawn(conn);
@@ -1585,7 +2129,7 @@ class PeerHost {
     conn.on("close", () => this.removeMember(conn));
   }
 
-  addMember(conn, rawName) {
+  addMember(conn, rawName, rawColor) {
     const name = sanitizePeerName(rawName);
     if (this.game.players.length >= MAX_PLAYERS) {
       this.send(conn, { t: "err", code: "full" });
@@ -1596,14 +2140,24 @@ class PeerHost {
     let unique = name, n = 2;
     while (taken.has(unique)) unique = name + n++;
 
+    let color = /^#[0-9a-fA-F]{6}$/.test(rawColor || "") ? rawColor : HUES[(this.members.size + 1) % HUES.length];
     const spot = this.game.safeSpawn(null);
-    const player = new Player(spot.x, spot.y, unique, HUES[(this.members.size + 1) % HUES.length]);
+    const player = new Player(spot.x, spot.y, unique, color);
+    if (this.teamsEnabled) {
+      const team = (this.humanCount || 1) % 2;
+      this.humanCount = (this.humanCount || 1) + 1;
+      player.team = team;
+      player.color = TEAM_COLORS[team];
+    }
     player.controller = new RemoteIntentController(spot.x, spot.y);
     player.spawnTime = this.game.time;
     player.shield = CFG.PLAYER.SPAWN_SHIELD;
     this.game.players.push(player);
     this.members.set(conn, { player, name: unique, dead: false, last: { p: new Map(), f: new Map() } });
-    this.send(conn, { t: "joined", id: player.id, room: this.roomCode, spawnTime: player.spawnTime });
+    this.send(conn, {
+      t: "joined", id: player.id, room: this.roomCode, spawnTime: player.spawnTime,
+      matchMode: this.game.matchMode, matchEndAt: this.game.matchEndAt
+    });
     this.game.events.push({ type: "spawn", hole: player });
   }
 
@@ -1611,21 +2165,21 @@ class PeerHost {
     const m = this.members.get(conn);
     if (!m) return;
     this.members.delete(conn);
-    if (m.player) m.player.dead = true;    
+    if (m.player) m.player.dead = true;
   }
 
   respawn(conn) {
+    if (this.game.matchMode === "elimination") return;
     const m = this.members.get(conn);
     if (!m || !m.dead) return;
     const spot = this.game.safeSpawn(m.player);
-    m.player.reset(spot.x, spot.y);        
+    m.player.reset(spot.x, spot.y);
     m.player.spawnTime = this.game.time;
     m.dead = false;
     if (!this.game.players.includes(m.player)) this.game.players.push(m.player);
     this.game.events.push({ type: "spawn", hole: m.player });
   }
 
-  
 
   broadcast() {
     this.forwardEvents();
@@ -1645,8 +2199,14 @@ class PeerHost {
       }
       for (const id of m.last.p.keys()) if (!seenP.has(id)) { m.last.p.delete(id); d.push(id); }
 
+      const gx = m.player.x, gy = m.player.y;
+      const viewR = Math.max(CFG.NET.VIEW_RADIUS, m.player.r * CFG.NET.VIEW_R_MUL);
+      const x0 = gx - viewR, x1 = gx + viewR, y0 = gy - viewR, y1 = gy + viewR;
+
+      // interest culling — only send what's near this player, keeps the host fast on big maps
       for (const fd of game.food) {
         if (fd.dead) continue;
+        if (fd.x < x0 || fd.x > x1 || fd.y < y0 || fd.y > y1) continue;
         seenF.add(fd.id);
         const enc = encodeFood(fd);
         const key = enc.join("|");
@@ -1676,7 +2236,7 @@ class PeerHost {
             this.send(conn, { t: "e", kind: "kill", a: ev.hole.name, b: ev.victim.name, mine, victimIsMe });
             if (victimIsMe) {
               m.dead = true;
-              const rank = game.rankOf(m.player);   
+              const rank = game.rankOf(m.player);
               m.player.bestRank = Math.min(m.player.bestRank, rank);
               this.send(conn, {
                 t: "e", kind: "death",
@@ -1691,6 +2251,20 @@ class PeerHost {
       } else if (ev.type === "spawn") {
         for (const [conn, m] of this.members) {
           if (m.player === ev.hole) this.send(conn, { t: "e", kind: "spawn", spawnTime: ev.hole.spawnTime });
+        }
+      } else if (ev.type === "power") {
+        for (const [conn, m] of this.members) {
+          if (m.player === ev.hole) this.send(conn, { t: "e", kind: "power", powerKind: ev.kind });
+        }
+      } else if (ev.type === "matchend") {
+        for (const [conn, m] of this.members) {
+          if (m.player !== ev.hole) continue;
+          m.dead = true;
+          this.send(conn, {
+            t: "e", kind: "death", killer: null, matchEnd: true, won: ev.won,
+            rank: ev.hole.bestRank, peakMass: ev.hole.peakMass,
+            time: game.time - ev.hole.spawnTime, absorbed: ev.hole.absorbed, rivalsEaten: ev.hole.rivalsEaten
+          });
         }
       }
     }
@@ -1710,8 +2284,6 @@ class PeerHost {
 }
 
 
-
-
 (function main() {
   const $ = id => document.getElementById(id);
   const canvas = $("game");
@@ -1724,7 +2296,7 @@ class PeerHost {
   const game = new Game(audio);
   const localController = new LocalMouseController(input, camera);
 
-  
+
   PROG = new Progression();
   window.PROG = PROG;
   PROG.refreshUI();
@@ -1736,13 +2308,149 @@ class PeerHost {
         plinkoCanvas = $("plinko-canvas"), plinkoStatusEl = $("plinko-status"),
         plinkoDropEl = $("plinko-drop"), plinkoSkipEl = $("plinko-skip"),
         plinkoReturnEl = $("plinko-return"), shopEl = $("cosmetics-shop"),
-        pauseEl = $("pause"), resumeEl = $("resume");
+        pauseEl = $("pause"), resumeEl = $("resume"),
+        recordEl = $("station-record"), recordMassEl = $("record-mass"), recordTimeEl = $("record-time"),
+        tintSwatchesEl = $("tint-swatches"), qualityToggleEl = $("quality-toggle"),
+        volumeSliderEl = $("volume-slider"), minimapToggleEl = $("minimap-toggle"),
+        killstreakEl = $("killstreak"), tutorialEl = $("tutorial"), tutorialDismissEl = $("tutorial-dismiss"),
+        teamsToggleEl = $("teams-toggle"), dailyEl = $("daily"), dailyDateEl = $("daily-date");
 
-  let net = null;      
-  let host = null;     
-  let mode = "solo";   
+  let net = null;
+  let host = null;
+  let mode = "solo";
 
   let plinko = null, pendingTokens = 0, plinkoResolved = false;
+
+  // --- personal record (reuses Progression's own quest-best tracking) ---
+  function renderRecord() {
+    const bestMass = (PROG.best && PROG.best.peakMass) || 0;
+    const bestTime = (PROG.best && PROG.best.time) || 0;
+    recordEl.hidden = !bestMass && !bestTime;
+    recordMassEl.textContent = fmt(bestMass);
+    recordTimeEl.textContent = mmss(bestTime);
+  }
+  renderRecord();
+
+  // --- station tint (free preset colors, ties into the cosmetics color a hole renders with) ---
+  const TINTS = ["#ffb45e", "#c88b3f", "#86a184", "#c65b43", "#7fa7c9", "#d8c9a0"];
+  let myTint = localStorage.getItem("bh_tint") || TINTS[0];
+  if (!TINTS.includes(myTint)) myTint = TINTS[0];
+  function renderTints() {
+    tintSwatchesEl.innerHTML = TINTS.map(c =>
+      '<button type="button" class="tint-swatch' + (c === myTint ? ' active' : '') +
+      '" style="--swatch:' + c + '" data-color="' + c + '" aria-label="Tint ' + c + '"></button>'
+    ).join("");
+  }
+  renderTints();
+  tintSwatchesEl.addEventListener("click", e => {
+    const btn = e.target.closest(".tint-swatch");
+    if (!btn) return;
+    myTint = btn.dataset.color;
+    localStorage.setItem("bh_tint", myTint);
+    renderTints();
+    if (game.local) game.local.color = myTint;
+  });
+
+  // --- station settings: render quality, volume, minimap ---
+  function applyQuality(low, persist) {
+    LOW_QUALITY = low;
+    CFG.RENDER.MAX_PARTICLES = low ? 80 : 300;
+    renderer.shadowScale = low ? 0.35 : 1;
+    renderer.dpr = 0;
+    renderer.resize();
+    document.getElementById("grain").style.display = low ? "none" : "";
+    qualityToggleEl.textContent = low ? "LOW" : "HIGH";
+    if (persist) localStorage.setItem("bh_quality", low ? "low" : "high");
+  }
+  applyQuality(localStorage.getItem("bh_quality") === "low", false);
+  qualityToggleEl.addEventListener("click", () => applyQuality(!LOW_QUALITY, true));
+
+  const savedVolume = parseInt(localStorage.getItem("bh_volume"), 10);
+  const initialVolume = isFinite(savedVolume) ? clamp(savedVolume, 0, 100) : 90;
+  volumeSliderEl.value = String(initialVolume);
+  audio.setVolume((initialVolume / 100) * 0.9);
+  volumeSliderEl.addEventListener("input", () => {
+    const v = clamp(parseInt(volumeSliderEl.value, 10) || 0, 0, 100);
+    audio.setVolume((v / 100) * 0.9);
+    localStorage.setItem("bh_volume", String(v));
+  });
+
+  renderer.showMinimap = localStorage.getItem("bh_minimap") !== "off";
+  minimapToggleEl.checked = renderer.showMinimap;
+  minimapToggleEl.addEventListener("change", () => {
+    renderer.showMinimap = minimapToggleEl.checked;
+    localStorage.setItem("bh_minimap", renderer.showMinimap ? "on" : "off");
+  });
+
+  // --- FPS-based auto quality: only ever steps HIGH -> LOW, never fights a manual choice back up ---
+  let lowFpsTimer = 0;
+
+  // --- kill streak ---
+  let killStreak = 0, killStreakTimer = 0;
+  function bumpKillStreak() {
+    killStreak++;
+    killStreakTimer = 2.2;
+    if (killStreak >= 2) {
+      killstreakEl.textContent = "×" + killStreak;
+      killstreakEl.classList.add("show");
+    }
+  }
+  function resetKillStreak() {
+    killStreak = 0;
+    killStreakTimer = 0;
+    killstreakEl.classList.remove("show");
+  }
+
+  // --- first-time tutorial hint ---
+  function maybeShowTutorial() {
+    if (localStorage.getItem("bh_seen_tutorial")) return;
+    localStorage.setItem("bh_seen_tutorial", "1");
+    tutorialEl.classList.remove("gone");
+    setTimeout(() => tutorialEl.classList.add("gone"), 9000);
+  }
+  tutorialDismissEl.addEventListener("click", () => tutorialEl.classList.add("gone"));
+
+  // --- match mode (classic / timed / last-hole-standing) ---
+  let matchMode = "classic";
+  const modeRowEl = $("mode-row");
+  modeRowEl.addEventListener("click", e => {
+    const btn = e.target.closest(".mode-btn");
+    if (!btn) return;
+    matchMode = btn.dataset.mode;
+    modeRowEl.querySelectorAll(".mode-btn").forEach(b => b.classList.toggle("active", b === btn));
+  });
+  function armMatch(g) {
+    g.matchMode = matchMode;
+    g.matchEndAt = matchMode === "timed" ? g.time + CFG.MATCH.TIMED_DURATION : null;
+  }
+
+  // --- daily challenge: same seed, same starting world, for everyone on the same date ---
+  function todayKey() {
+    const d = new Date();
+    return d.getUTCFullYear() + "-" + String(d.getUTCMonth() + 1).padStart(2, "0") + "-" + String(d.getUTCDate()).padStart(2, "0");
+  }
+  dailyDateEl.textContent = todayKey();
+
+  function startDaily() {
+    audio.unlock();
+    audio.ui();
+    if (host) { host.close(); host = null; }
+    if (net) { net.close(); net = null; }
+    mode = "solo";
+    menuEl.classList.add("gone");
+    deathEl.classList.add("gone");
+    setPaused(false);
+    camera.hard = true;
+    game.clearEntities();
+    game.initDaily(todayKey());
+    armMatch(game);
+    game.spawnLocal(playerName(), localController);
+    game.local.color = myTint;
+    camera.x = game.local.x; camera.y = game.local.y;
+    setStatus("DAILY CHALLENGE — " + todayKey(), false);
+    maybeShowTutorial();
+  }
+  dailyEl.addEventListener("click", startDaily);
 
   function setPaused(v) {
     PAUSED = !!v;
@@ -1766,7 +2474,7 @@ class PeerHost {
     return (nameEl.value || "").trim().toUpperCase().slice(0, 12) || "YOU";
   }
 
-  
+
   function enterSolo() {
     mode = "solo";
     if (host) { host.close(); host = null; }
@@ -1789,12 +2497,15 @@ class PeerHost {
     deathEl.classList.add("gone");
     setPaused(false);
     camera.hard = true;
+    if (mode !== "host") armMatch(game);
     game.spawnLocal(playerName(), localController);
+    game.local.color = myTint;
     camera.x = game.local.x; camera.y = game.local.y;
     setStatus("");
+    maybeShowTutorial();
   }
 
-  
+
   function startHost() {
     audio.unlock();
     audio.ui();
@@ -1807,15 +2518,19 @@ class PeerHost {
     if (net) { net.close(); net = null; }
     setStatus("CREATING ROOM...", false);
 
+    const teamsOn = teamsToggleEl.checked;
     host = new PeerHost(game, name, code => {
-      
+
       game.clearEntities();
-      game.init();                              
+      game.init();
+      armMatch(game);
+      host.teamsEnabled = teamsOn;
       const spot = game.safeSpawn(null);
-      const me = new Player(spot.x, spot.y, name, "#ffb45e");
+      const me = new Player(spot.x, spot.y, name, teamsOn ? TEAM_COLORS[0] : myTint);
       me.isLocal = true;
       me.controller = localController;
       me.spawnTime = game.time;
+      if (teamsOn) { me.team = 0; host.humanCount = 1; }
       game.players.push(me);
       game.local = me;
       game.state = "playing";
@@ -1826,6 +2541,7 @@ class PeerHost {
       camera.hard = true;
       showRoom(code);
       setStatus("");
+      maybeShowTutorial();
     }, code => {
       setStatus(code === "connect" ? "COULD NOT CREATE ROOM — CHECK INTERNET" : "ROOM ERROR", true);
       enterSolo();
@@ -1834,7 +2550,7 @@ class PeerHost {
     host.createRoom();
   }
 
-  
+
   function joinPeerRoom(code) {
     audio.unlock();
     audio.ui();
@@ -1865,6 +2581,7 @@ class PeerHost {
       conn.on("open", () => {
         if (done) return;
         net = new NetworkController(game, name);
+        net.color = myTint;
         net.onjoined = () => {
           done = true;
           mode = "multi";
@@ -1874,6 +2591,7 @@ class PeerHost {
           camera.hard = true;
           showRoom(net.room);
           setStatus("");
+          maybeShowTutorial();
         };
         net.onerror = c => {
           const text = c === "full" ? "ROOM FULL"
@@ -1894,9 +2612,15 @@ class PeerHost {
   }
 
   function respawnOrRestart() {
-    if (pendingTokens > 0 && !plinkoResolved) finishPlinko(1);   
-    if (mode === "host" && host) startSolo();          
-    else if (net && net.connected) net.respawn();      
+    if (pendingTokens > 0 && !plinkoResolved) finishPlinko(1);
+    if (game.matchMode === "elimination") {
+      deathEl.classList.add("gone");
+      enterSolo();
+      menuEl.classList.remove("gone");
+      return;
+    }
+    if (mode === "host" && host) startSolo();
+    else if (net && net.connected) net.respawn();
     else startSolo();
   }
 
@@ -1911,7 +2635,7 @@ class PeerHost {
   $("join").addEventListener("click", joinFromInput);
   $("respawn").addEventListener("click", respawnOrRestart);
 
-  
+
   plinkoDropEl.addEventListener("click", () => { if (plinko && !plinko.landed) plinko.drop(); });
   plinkoSkipEl.addEventListener("click", () => finishPlinko(1));
   plinkoReturnEl.addEventListener("click", () => {
@@ -1927,7 +2651,7 @@ class PeerHost {
     const id = btn.dataset.id, action = btn.dataset.action;
     if (action === "buy") {
       const r = PROG.buy(id);
-      if (r === "ok") { setStatus("UNLOCKED: " + (PROG.item(id) || {}).name, false); PROG.renderShop(); }
+      if (r === "ok") { setStatus("UNLOCKED: " + (PROG.item(id) || {}).name, false); PROG.renderShop(); PROG.updateTokenUI(); }
       else if (r === "broke") setStatus("NOT ENOUGH TOKENS", true);
     } else if (action === "equip") {
       PROG.equip(id);
@@ -1938,7 +2662,7 @@ class PeerHost {
   nameEl.addEventListener("keydown", e => { if (e.key === "Enter") startSolo(); });
   window.addEventListener("keydown", e => {
     if ((e.code === "Space" || e.code === "Enter") && game.state === "dead") { e.preventDefault(); respawnOrRestart(); }
-    
+
     else if (e.code === "Escape" && game.state === "playing") setPaused(!PAUSED);
   });
 
@@ -1961,7 +2685,7 @@ class PeerHost {
     if (on) audio.ui();
   });
 
-  
+
   let hidden = false;
   document.addEventListener("visibilitychange", () => {
     hidden = document.hidden;
@@ -1972,38 +2696,59 @@ class PeerHost {
 
   function showDeath() {
     const d = game.deathInfo;
-    $("d-killer").textContent = d.killer;
+    const titleEl = $("death-title"), killerLineEl = $("death-killer-line"), respawnEl = $("respawn");
+    const elimination = game.matchMode === "elimination";
+
+    if (d.matchEnd) {
+      killerLineEl.style.display = "none";
+      if (elimination) titleEl.innerHTML = d.won ? "LAST<em> STANDING</em>" : "ELIMINAT<em>ED</em>";
+      else titleEl.innerHTML = d.won ? "TOP OF THE<em> FIELD</em>" : "TIME<em>'S UP</em>";
+    } else {
+      killerLineEl.style.display = "";
+      titleEl.innerHTML = "ECLIPSE<em>D</em>";
+      $("d-killer").textContent = d.killer;
+    }
+    respawnEl.textContent = elimination ? "RETURN TO STATION" : "COLLAPSE AGAIN";
+
     $("d-mass").textContent = fmt(d.peakMass);
     $("d-rank").textContent = "#" + (d.rank === 99 ? "—" : d.rank);
     $("d-time").textContent = mmss(d.time);
     $("d-eaten").textContent = d.absorbed;
 
-    
+
     const result = PROG.endRun({ peakMass: d.peakMass, rivalsEaten: d.rivalsEaten || 0, time: d.time });
     runRewardEl.textContent = "TOKENS EARNED: " + Progression.fmt(result.runTokens) +
       (result.questRewards > 0 ? "  (+" + Progression.fmt(result.questRewards) + " QUEST BONUS)" : "");
     PROG.updateTokenUI();
     PROG.renderQuests();
+    renderRecord();
+    resetKillStreak();
     pendingTokens = result.runTokens;
-    plinkoResolved = false;              
+    plinkoResolved = false;
     plinkoStatusEl.textContent = "";
     plinkoReturnEl.hidden = true;
-    if (plinko) plinko.reset();          
-    
-    
-    if (!plinko) {
-      plinko = new Plinko(plinkoCanvas);
-      plinko.onLanded = finishPlinko;
-      plinkoCanvas.addEventListener("click", () => { if (plinko && !plinko.landed) plinko.drop(); });
+    if (plinko) plinko.reset();
+
+
+    if (elimination) {
+      plinkoDropEl.hidden = true;
+      plinkoSkipEl.hidden = true;
+      plinkoSectionEl.hidden = true;
+    } else {
+      if (!plinko) {
+        plinko = new Plinko(plinkoCanvas);
+        plinko.onLanded = finishPlinko;
+        plinkoCanvas.addEventListener("click", () => { if (plinko && !plinko.landed) plinko.drop(); });
+      }
+      plinkoDropEl.hidden = false;
+      plinkoSkipEl.hidden = false;
+      plinkoSectionEl.hidden = false;
     }
-    plinkoDropEl.hidden = false;
-    plinkoSkipEl.hidden = false;
-    plinkoSectionEl.hidden = false;
 
     deathEl.classList.remove("gone");
   }
 
-  
+
   function finishPlinko(mult) {
     if (plinkoResolved) return;
     plinkoResolved = true;
@@ -2018,12 +2763,12 @@ class PeerHost {
     PROG.updateTokenUI();
   }
 
-  
-  
-  
+
   let acc = 0, last = performance.now();
   let fps = 60, fpsAcc = 0, fpsFrames = 0;
   let deathDelay = 0;
+  let attractSkip = false;
+  let lastBroadcast = 0;
 
   function frame(now) {
     requestAnimationFrame(frame);
@@ -2032,15 +2777,18 @@ class PeerHost {
     if (hidden || !isFinite(dt) || dt <= 0) return;
     dt = Math.min(dt, CFG.PHYSICS.MAX_FRAME_DT);
 
+    // menu attract mode renders the full sim behind it — cap to ~30fps
+    if (game.state === "menu") { attractSkip = !attractSkip; if (attractSkip) return; }
+
     fpsAcc += dt; fpsFrames++;
     if (fpsAcc >= 0.25) { fps = fpsFrames / fpsAcc; fpsAcc = 0; fpsFrames = 0; }
 
-    
+
     if (mode === "solo") {
-      if (!PAUSED) {                       
+      if (!PAUSED) {
         acc += dt;
         let steps = 0;
-        while (acc >= CFG.PHYSICS.FIXED_DT && steps < 8) {   
+        while (acc >= CFG.PHYSICS.FIXED_DT && steps < 8) {
           game.step(CFG.PHYSICS.FIXED_DT);
           acc -= CFG.PHYSICS.FIXED_DT;
           steps++;
@@ -2048,9 +2796,8 @@ class PeerHost {
         if (steps === 8) acc = 0;
       }
     } else if (mode === "host" && host) {
-      
-      
-      
+
+
       acc += dt;
       let steps = 0;
       while (acc >= CFG.PHYSICS.FIXED_DT && steps < 8) {
@@ -2059,12 +2806,12 @@ class PeerHost {
         steps++;
       }
       if (steps === 8) acc = 0;
-      host.broadcast();
+      if (now - lastBroadcast >= 40) { host.broadcast(); lastBroadcast = now; }   // ~25hz snapshots
     } else if (net && net.connected) {
-      
-      
-      net.update();                                    
-      for (const p of game.particles) p.step(dt);      
+
+
+      net.update();
+      for (const p of game.particles) p.step(dt);
       game.particles = game.particles.filter(p => !p.dead);
       for (let i = game.feed.length - 1; i >= 0; i--) {
         game.feed[i].t -= dt;
@@ -2072,7 +2819,7 @@ class PeerHost {
       }
     }
 
-    
+
     const listener = game.state === "dead" ? game.deathCam : game.local;
     for (const ev of game.events) {
       if (ev.type === "absorb") {
@@ -2080,16 +2827,30 @@ class PeerHost {
         audio.absorb(ev.r, d, camera.viewRadius, ev.victim && ev.victim.type === "player");
         if (ev.hole === game.local) camera.kick(clamp(ev.r / 90, 0.04, 0.9));
         if (net) game.spawnAbsorption({ x: ev.x, y: ev.y, r: ev.r, tint: ev.victim.tint }, ev.hole || { vx: 0, vy: 0 });
+        if (ev.hole === game.local && ev.victim && ev.victim.type === "player") bumpKillStreak();
       } else if (ev.type === "death") {
         audio.death();
         camera.kick(1.4);
         camera.hard = false;
-        deathDelay = 1.15;                 
-        setPaused(false);                  
+        deathDelay = 1.15;
+        setPaused(false);
+        resetKillStreak();
       } else if (ev.type === "spawn") {
         audio.spawn();
         camera.hard = true;
         deathEl.classList.add("gone");
+        resetKillStreak();
+      } else if (ev.type === "power") {
+        if (ev.hole === game.local) { audio.power(ev.kind); camera.kick(0.15); }
+      } else if (ev.type === "matchend") {
+        if (ev.hole === game.local) {
+          audio.death();
+          camera.kick(1.4);
+          camera.hard = false;
+          deathDelay = 1.15;
+          setPaused(false);
+          resetKillStreak();
+        }
       }
     }
     game.events.length = 0;
@@ -2099,20 +2860,36 @@ class PeerHost {
       if (deathDelay <= 0 && game.state === "dead") showDeath();
     }
 
-    
+    if (killStreakTimer > 0) {
+      killStreakTimer -= dt;
+      if (killStreakTimer <= 0) killstreakEl.classList.remove("show");
+    }
+
+    if (!LOW_QUALITY && game.state === "playing") {
+      if (fps > 0 && fps < 40) lowFpsTimer += dt; else lowFpsTimer = 0;
+      if (lowFpsTimer > 3) { applyQuality(true, true); setStatus("AUTO-REDUCED RENDER QUALITY — LOW FPS", false); }
+    }
+
+
     let camTarget;
     if (game.state === "playing") camTarget = game.local;
     else if (game.state === "dead") {
-      if (game.deathCam && game.deathCam.dead) game.deathCam = null;   
+      if (game.deathCam && game.deathCam.dead) game.deathCam = null;
       camTarget = game.deathCam || attractTarget();
     }
     else camTarget = attractTarget();
     camera.follow(camTarget, dt);
 
-    
+
     if (mode === "multi" && net && net.connected && game.state === "playing" && game.local && !PAUSED) {
       localController.update(game.local);
-      net.sendIntent(game.local.intentX, game.local.intentY);   
+      net.sendIntent(game.local.intentX, game.local.intentY, game.local.boost);
+      if (game.local.boost) {
+        game.local.trail.push(game.local.x, game.local.y);
+        while (game.local.trail.length > 52) game.local.trail.splice(0, 2);
+      } else if (game.local.trail.length) {
+        game.local.trail.length = 0;
+      }
     }
 
     renderer.draw(game);
