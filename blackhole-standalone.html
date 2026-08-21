@@ -1,0 +1,3369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+<title>Blackhole.io</title>
+<style>
+  /* my colors */
+  :root {
+    --bg: #0a0a14;
+    --panel: #141426;
+    --text: #e8f0ff;
+    --dim: #8b93a7;
+    --accent: #6ee87a;
+    --danger: #ff6b6b;
+    --good: #7dff9e;
+    --line: #2b3350;
+  }
+
+  html, body {
+    margin: 0; padding: 0; width: 100%; height: 100%;
+    background: var(--bg);
+    overflow: hidden;
+    cursor: crosshair;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  #game { display: block; position: fixed; inset: 0; width: 100vw; height: 100vh; background: #000; }
+
+  #hud {
+    position: fixed; top: 16px; left: 16px; z-index: 10;
+    font-size: 12px; line-height: 1.6;
+    color: var(--dim);
+    pointer-events: none;
+  }
+  #hud .k { color: var(--dim); opacity: 0.6; }
+  #hud .big { font-size: 16px; color: var(--text); letter-spacing: 2px; }
+
+  #board {
+    position: fixed; top: 16px; right: 16px; text-align: right; z-index: 10;
+    font-size: 12px; line-height: 1.7;
+    color: var(--dim);
+    pointer-events: none;
+  }
+  #board .board-header { color: var(--dim); opacity: 0.7; letter-spacing: 2px; margin-bottom: 4px; }
+  #board .me { color: var(--accent); }
+
+  #feed {
+    position: fixed; top: 150px; right: 16px; text-align: right; z-index: 10;
+    font-size: 11px; line-height: 1.9;
+    color: var(--dim);
+    pointer-events: none;
+  }
+  #feed div { animation: feed-in 0.35s ease both; }
+  #feed .ate { color: var(--text); }
+  #feed .mine { color: var(--accent); }
+  #feed .victim { color: var(--danger); }
+  @keyframes feed-in { from { opacity: 0; transform: translateX(14px); } to { opacity: 1; transform: none; } }
+
+  .screen {
+    position: fixed; inset: 0; z-index: 20;
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: flex-start;
+    gap: 16px; text-align: center;
+    padding: 40px 0;
+    overflow-y: auto;
+    background: radial-gradient(ellipse at center, rgba(0,0,0,0.55), rgba(0,0,0,0.85));
+    transition: opacity 0.4s ease;
+  }
+  .screen > * { text-shadow: 0 2px 12px rgba(0,0,0,0.9); }
+  .screen.gone { opacity: 0; pointer-events: none; }
+
+  h1 {
+    margin: 0;
+    font-size: 48px;
+    font-weight: 400;
+    letter-spacing: 10px;
+    color: var(--text);
+    text-shadow: 0 0 20px rgba(110,232,122,0.3);
+    padding-left: 10px;
+  }
+  .tagline { color: var(--dim); font-size: 13px; letter-spacing: 2px; line-height: 2; }
+  .stats { display: flex; gap: 32px; margin: 4px 0; }
+  .divider { width: 200px; height: 1px; background: var(--line); }
+
+  input[type=text] {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 14px;
+    letter-spacing: 2px;
+    text-align: center;
+    text-transform: uppercase;
+    padding: 12px 16px;
+    width: 230px;
+    border-radius: 4px;
+    outline: none;
+  }
+  input[type=text]:focus { border-color: var(--accent); }
+
+  button {
+    background: transparent;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    font-family: inherit;
+    font-size: 15px;
+    letter-spacing: 3px;
+    padding: 12px 28px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.15s ease, transform 0.1s ease;
+  }
+  button:hover { background: rgba(110,232,122,0.1); }
+  button:active { transform: scale(0.97); }
+
+  #death h1 { color: var(--danger); text-shadow: 0 0 20px rgba(255,107,107,0.3); }
+  #death .killer { font-size: 14px; letter-spacing: 2px; color: var(--dim); }
+  #death .killer b { color: var(--text); font-weight: 400; }
+
+  .stat { min-width: 84px; }
+  .stat .v { font-size: 22px; color: var(--text); letter-spacing: 1px; }
+  .stat .l { font-size: 10px; color: var(--dim); letter-spacing: 2px; margin-top: 4px; }
+  .hint { font-size: 10px; color: var(--dim); opacity: 0.6; letter-spacing: 2px; }
+
+  #sound {
+    position: fixed; bottom: 16px; left: 16px; z-index: 12;
+    font-size: 11px; letter-spacing: 2px; color: var(--dim);
+    border: 1px solid var(--line); padding: 8px 12px; border-radius: 4px;
+    cursor: pointer; background: transparent;
+    transition: color 0.15s ease, border-color 0.15s ease;
+  }
+  #sound:hover { color: var(--accent); border-color: var(--accent); }
+  #sound.off { color: var(--danger); border-color: var(--danger); }
+
+  #roomtag {
+    position: fixed; top: 16px; left: 50%; transform: translateX(-50%); z-index: 11;
+    font-size: 12px; letter-spacing: 3px; color: var(--accent);
+    padding: 8px 16px; border: 1px solid rgba(110,232,122,0.4); border-radius: 4px;
+    background: var(--panel);
+    cursor: pointer;
+  }
+  #roomtag b { color: var(--text); }
+  #roomtag.gone { display: none; }
+  .row { display: flex; gap: 16px; align-items: center; justify-content: center; flex-wrap: wrap; }
+  .row input[type=text] { width: 150px; padding: 10px 12px; }
+  .status { min-height: 16px; font-size: 11px; letter-spacing: 2px; color: var(--dim); }
+  .status.err { color: var(--danger); }
+
+  .token-balance-display {
+    padding: 8px 20px;
+    border: 1px solid rgba(110,232,122,0.4);
+    border-radius: 4px;
+    font-size: 13px;
+    letter-spacing: 2px;
+    color: var(--accent);
+    background: var(--panel);
+  }
+  .token-balance-display b {
+    color: var(--text);
+    font-weight: 400;
+  }
+
+  .shop-container,
+  .quest-container {
+    width: min(92vw, 420px);
+    text-align: left;
+  }
+  .shop-summary,
+  .quest-summary {
+    padding: 8px 12px;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    font-size: 12px;
+    letter-spacing: 2px;
+    color: var(--text);
+    background: var(--panel);
+    cursor: pointer;
+    list-style: none;
+    transition: border-color 0.15s ease;
+  }
+  .shop-summary::-webkit-details-marker,
+  .quest-summary::-webkit-details-marker {
+    display: none;
+  }
+  .shop-summary:hover,
+  .quest-summary:hover,
+  details[open] .shop-summary,
+  details[open] .quest-summary {
+    border-color: var(--accent);
+  }
+
+  .cosmetics-shop,
+  .quest-log {
+    margin-top: 8px;
+    padding: 6px 12px;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    max-height: 34vh;
+    overflow-y: auto;
+    background: var(--panel);
+  }
+
+  .shop-category-name {
+    margin: 10px 4px 4px;
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--dim);
+  }
+  .shop-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 7px 4px;
+    border-bottom: 1px solid var(--line);
+  }
+  .shop-item:last-child {
+    border-bottom: none;
+  }
+  .shop-item-name {
+    flex: 1;
+    text-align: left;
+    font-size: 12px;
+    letter-spacing: 1px;
+    color: var(--text);
+  }
+  .shop-item-cost {
+    font-size: 11px;
+    color: var(--accent);
+    white-space: nowrap;
+  }
+  .shop-item .shop-item-action {
+    padding: 8px 14px;
+    font-size: 11px;
+    letter-spacing: 2px;
+  }
+  .shop-item-action-equipped {
+    border-color: var(--line);
+    color: var(--dim);
+    cursor: default;
+  }
+  .shop-item-action-equipped:hover {
+    background: transparent;
+  }
+
+  .quest-entry {
+    padding: 8px 4px;
+    border-bottom: 1px solid var(--line);
+  }
+  .quest-entry:last-child {
+    border-bottom: none;
+  }
+  .quest-entry-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 10px;
+  }
+  .quest-name {
+    font-size: 12px;
+    letter-spacing: 1px;
+    color: var(--text);
+  }
+  .quest-reward {
+    font-size: 11px;
+    color: var(--accent);
+    white-space: nowrap;
+  }
+  .quest-desc {
+    margin-top: 3px;
+    font-size: 11px;
+    color: var(--dim);
+  }
+  .quest-progress {
+    margin-top: 5px;
+    font-size: 11px;
+    color: var(--dim);
+  }
+  .quest-status {
+    margin-top: 4px;
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--dim);
+  }
+  .quest-status-done {
+    color: var(--good);
+  }
+
+  .run-reward {
+    font-size: 14px;
+    letter-spacing: 2px;
+    color: var(--text);
+  }
+  .plinko-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+  }
+  .plinko-section[hidden] {
+    display: none;
+  }
+  .plinko-title {
+    font-size: 12px;
+    letter-spacing: 3px;
+    color: var(--accent);
+  }
+  .plinko-canvas {
+    max-width: min(92vw, 560px);
+    height: auto;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: var(--bg);
+  }
+  .plinko-status {
+    min-height: 16px;
+    font-size: 13px;
+    letter-spacing: 2px;
+    color: var(--good);
+  }
+  #plinko-skip {
+    border-color: var(--line);
+    color: var(--dim);
+  }
+  #plinko-skip:hover {
+    background: rgba(139,147,167,0.1);
+  }
+  #plinko-return {
+    border-color: var(--good);
+    color: var(--good);
+  }
+  #plinko-return:hover {
+    background: rgba(125,255,158,0.1);
+  }
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+
+<div id="hud">
+  <div class="big">MASS <span id="ui-mass">0</span></div>
+  <div><span class="k">X</span> <span id="ui-x">0</span> &nbsp; <span class="k">Y</span> <span id="ui-y">0</span></div>
+  <div><span class="k">FPS</span> <span id="ui-fps">0</span> &nbsp; <span class="k">ENT</span> <span id="ui-ent">0</span></div>
+  <div><span class="k">TIME</span> <span id="ui-time">0:00</span> &nbsp; <span class="k">EATEN</span> <span id="ui-eaten">0</span></div>
+</div>
+
+<div id="board">
+  <div class="board-header">SINGULARITIES</div>
+  <div id="ui-board"></div>
+</div>
+<div id="feed"></div>
+
+<div id="sound">SOUND ON</div>
+<div id="roomtag" class="gone">ROOM <b id="room-code">—</b> · TAP TO COPY</div><div class="screen" id="menu">
+  <h1>BLACKHOLE</h1>
+  <div class="divider"></div>
+  <div class="tagline">SWALLOW DUST. THEN ASTEROIDS. THEN PLANETS.<br>THEN EVERYONE ELSE.</div>
+  <input type="text" id="name" maxlength="12" placeholder="YOUR NAME" autocomplete="off" spellcheck="false" />
+  <div class="row">
+    <button id="play">SOLO</button>
+    <button id="create">CREATE ROOM</button>
+  </div>
+  <div class="row">
+    <input type="text" id="room" maxlength="6" placeholder="ROOM CODE" autocomplete="off" spellcheck="false" />
+    <button id="join">JOIN</button>
+  </div>
+  <div class="token-balance-display">TOKENS <b id="token-balance">0</b></div>
+  <details class="shop-container">
+    <summary class="shop-summary">COSMETICS SHOP</summary>
+    <div class="cosmetics-shop" id="cosmetics-shop"></div>
+  </details>
+  <details class="quest-container">
+    <summary class="quest-summary">QUESTS</summary>
+    <div class="quest-log" id="quest-log"></div>
+  </details>
+  <div class="status" id="status"></div>
+  <div class="hint">MOVE WITH THE MOUSE</div>
+</div><div class="screen gone" id="death">
+  <h1>DEVOURED</h1>
+  <div class="killer">BY <b id="d-killer">—</b></div>
+  <div class="divider"></div>
+  <div class="stats">
+    <div class="stat"><div class="v" id="d-mass">0</div><div class="l">PEAK MASS</div></div>
+    <div class="stat"><div class="v" id="d-rank">—</div><div class="l">BEST RANK</div></div>
+    <div class="stat"><div class="v" id="d-time">0:00</div><div class="l">SURVIVED</div></div>
+    <div class="stat"><div class="v" id="d-eaten">0</div><div class="l">ABSORBED</div></div>
+  </div>
+  <div class="divider"></div>
+  <div class="run-reward" id="run-reward"></div>
+  <div class="plinko-section" id="plinko-section" hidden>
+    <div class="plinko-title">BONUS ROUND — CATCH THE MULTIPLIER</div>
+    <canvas class="plinko-canvas" id="plinko-canvas" width="560" height="400"></canvas>
+    <div class="plinko-status" id="plinko-status"></div>
+    <div class="row">
+      <button id="plinko-drop">DROP BALL</button>
+      <button id="plinko-skip">TAKE 1x</button>
+    </div>
+  </div>
+  <button id="plinko-return" hidden>RETURN TO MENU</button>
+  <button id="respawn">COLLAPSE AGAIN</button>
+  <div class="hint">OR PRESS SPACE</div>
+</div>
+
+<div class="screen gone" id="pause">
+  <h1>PAUSED</h1>
+  <button id="resume">RESUME</button>
+  <div class="hint">ESC TO RESUME</div>
+</div>
+
+<script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
+<script>
+
+
+(function (root, factory) {
+  const api = factory();
+  if (typeof module === "object" && module.exports) module.exports = api;
+  else { root.BLACKHOLE_SIM = api; Object.assign(root, api); }
+})(typeof globalThis !== "undefined" ? globalThis : this, function () {
+"use strict";
+
+
+
+const CFG = {
+  WORLD: { w: 5000, h: 5000 },
+  COUNTS: { dust: 520, asteroids: 54, planets: 9, bots: 9 },
+
+  PHYSICS: {
+    FIXED_DT: 1 / 60,           
+    MAX_FRAME_DT: 0.10,
+    G: 26.0,                    
+    INFLUENCE_MUL: 15,
+    INFLUENCE_BASE: 140,
+    SWIRL: 0.62,                
+    MAX_ACCEL: 5200,
+    DRAG: 0.55,
+    EAT_RATIO: 1.06,            
+    EAT_OVERLAP: 0.72
+  },
+
+  PLAYER: {
+    START_MASS: Math.PI * 9 * 9,
+    BASE_SPEED: 430,
+    SPEED_FALLOFF: 0.42,
+    MIN_SPEED: 74,
+    ACCEL_LERP: 3.1,
+    SPAWN_SHIELD: 3.0           
+  },
+
+  CAMERA: { VIEW_REF: 620, VIEW_PAD: 46, MIN_ZOOM: 0.16, MAX_ZOOM: 1.5, LERP: 2.4 },
+
+  RENDER: {
+    TRAIL_FADE: 0.30,
+    STAR_LAYERS: [
+      { count: 420, speed: 0.14, size: 0.9,  alpha: 0.42 },
+      { count: 260, speed: 0.34, size: 1.35, alpha: 0.62 },
+      { count: 140, speed: 0.62, size: 2.0,  alpha: 0.92 }
+    ],
+    SPAGHETTI_MAX: 4.6,
+    MAX_PARTICLES: 300          
+  }
+};
+
+
+
+
+const TAU = Math.PI * 2;
+const clamp = (v, a, b) => v < a ? a : (v > b ? b : v);
+const lerp  = (a, b, t) => a + (b - a) * t;
+
+
+const damp  = (a, b, k, dt) => lerp(a, b, 1 - Math.exp(-k * dt));
+const rand  = (a, b) => a + Math.random() * (b - a);
+const randi = (a, b) => Math.floor(rand(a, b + 1));
+const pick  = arr => arr[(Math.random() * arr.length) | 0];
+const chance = p => Math.random() < p;
+
+
+
+const radiusFromMass = m => Math.sqrt(m / Math.PI);
+const massFromRadius = r => Math.PI * r * r;
+
+const fmt = n => n >= 1e6 ? (n / 1e6).toFixed(2) + "M"
+              : n >= 1e3 ? (n / 1e3).toFixed(1) + "k"
+              : Math.round(n).toString();
+const mmss = s => Math.floor(s / 60) + ":" + String(Math.floor(s % 60)).padStart(2, "0");
+
+let __id = 1;
+const nextId = () => __id++;
+
+
+
+
+const r2 = v => Math.round(v * 100) / 100;
+const r3 = v => Math.round(v * 1000) / 1000;
+const FOOD_TYPES = { dust: 0, asteroid: 1, planet: 2 };
+const FOOD_TYPES_REV = ["dust", "asteroid", "planet"];
+
+function encodePlayer(p) {
+  return [p.id, Math.round(p.x), Math.round(p.y), Math.round(p.r), r2(p.stretch), r3(p.stretchAng),
+          p.color, p.name, p.isBot ? 1 : 0, r2(p.shield), r2(p.eatFlash), r3(p.diskAngle), r3(p.pulse)];
+}
+function decodePlayer(a) {
+  return { id: a[0], kind: "player", x: a[1], y: a[2], r: a[3], stretch: a[4], stretchAng: a[5],
+           color: a[6], name: a[7], isBot: !!a[8], shield: a[9], eatFlash: a[10],
+           diskAngle: a[11], pulse: a[12], mass: massFromRadius(a[3]) };
+}
+function encodeFood(f) {
+  if (f.type === "dust")     return [f.id, 0, Math.round(f.x), Math.round(f.y), Math.round(f.r), r2(f.stretch), r3(f.stretchAng), f.tint];
+  if (f.type === "asteroid") return [f.id, 1, Math.round(f.x), Math.round(f.y), Math.round(f.r), r2(f.stretch), r3(f.stretchAng), f.tint, r3(f.angle), f.lumps];
+  return [f.id, 2, Math.round(f.x), Math.round(f.y), Math.round(f.r), r2(f.stretch), r3(f.stretchAng), f.tint, r3(f.angle), f.hasRing ? 1 : 0, r3(f.ringTilt), f.pal];
+}
+function decodeFood(a) {
+  const kind = FOOD_TYPES_REV[a[1]];
+  if (kind === "dust")     return { id: a[0], kind, x: a[2], y: a[3], r: a[4], stretch: a[5], stretchAng: a[6], tint: a[7] };
+  if (kind === "asteroid") return { id: a[0], kind, x: a[2], y: a[3], r: a[4], stretch: a[5], stretchAng: a[6], tint: a[7], angle: a[8], lumps: a[9] };
+  return { id: a[0], kind, x: a[2], y: a[3], r: a[4], stretch: a[5], stretchAng: a[6], tint: a[7], angle: a[8], hasRing: !!a[9], ringTilt: a[10], pal: a[11] };
+}
+
+
+
+class Entity {
+  constructor(x, y, mass) {
+    this.id = nextId();
+    this.x = x; this.y = y;
+    this.vx = 0; this.vy = 0;
+    this.mass = mass;
+    this.r = radiusFromMass(mass);
+    this.dead = false;
+    this.stretch = 1;        
+    this.stretchAng = 0;     
+    this.spin = rand(-1.6, 1.6);
+    this.angle = rand(0, TAU);
+    this.tint = "#8fa6c8";
+    this.type = "entity";
+  }
+
+  setMass(m) { this.mass = m; this.r = radiusFromMass(m); }
+
+  integrate(dt, world) {
+    this.x += this.vx * dt;
+    this.y += this.vy * dt;
+    this.angle += this.spin * dt;
+    const pad = this.r;
+    if (this.x < pad)           { this.x = pad;           this.vx =  Math.abs(this.vx) * 0.5; }
+    if (this.x > world.w - pad) { this.x = world.w - pad; this.vx = -Math.abs(this.vx) * 0.5; }
+    if (this.y < pad)           { this.y = pad;           this.vy =  Math.abs(this.vy) * 0.5; }
+    if (this.y > world.h - pad) { this.y = world.h - pad; this.vy = -Math.abs(this.vy) * 0.5; }
+  }
+}
+
+class Dust extends Entity {
+  constructor(x, y) {
+    super(x, y, massFromRadius(rand(1.6, 3.4)));
+    this.vx = rand(-14, 14); this.vy = rand(-14, 14);
+    this.type = "dust";
+    this.tint = pick(["#9fd8ff", "#c9b6ff", "#ffe6a8", "#a9ffe4", "#ffb9d8"]);
+    this.twinkle = rand(0, TAU);
+  }
+}
+
+class Asteroid extends Entity {
+  constructor(x, y) {
+    const r = rand(7, 21);
+    super(x, y, massFromRadius(r));
+    this.vx = rand(-30, 30); this.vy = rand(-30, 30);
+    this.type = "asteroid";
+    this.tint = pick(["#8b8375", "#6f7c8c", "#94836e", "#77706b"]);
+    this.lumps = [];                       
+    const n = randi(7, 11);
+    for (let i = 0; i < n; i++) this.lumps.push(rand(0.74, 1.2));
+  }
+}
+
+class Planet extends Entity {
+  constructor(x, y) {
+    const r = rand(46, 132);
+    super(x, y, massFromRadius(r));
+    this.vx = rand(-8, 8); this.vy = rand(-8, 8);
+    this.spin = rand(-0.22, 0.22);
+    this.type = "planet";
+    this.pal = pick([
+      ["#3f6fa8", "#7fb2d8", "#254a72"], ["#a8703f", "#d8a97f", "#6f4425"],
+      ["#4b8f6a", "#8fd8b0", "#2c5a41"], ["#8a4b8f", "#c98fd8", "#4f2c5a"],
+      ["#a83f4f", "#d87f8f", "#722530"]
+    ]);
+    this.tint = this.pal[0];
+    this.hasRing = chance(0.34);
+    this.ringTilt = rand(-0.6, 0.6);
+  }
+}
+
+
+
+class Player extends Entity {
+  constructor(x, y, name, color) {
+    super(x, y, CFG.PLAYER.START_MASS);
+    this.type = "player";
+    this.name = name;
+    this.color = color;
+    this.intentX = x; this.intentY = y;    
+    this.isLocal = false;
+    this.isBot = false;
+    this.controller = null;
+    this.pulse = rand(0, TAU);
+    this.diskAngle = rand(0, TAU);
+    this.eatFlash = 0;
+    this.shield = 0;                       
+    this.trail = [];
+    
+    this.absorbed = 0;
+    this.rivalsEaten = 0;                    
+    this.peakMass = this.mass;
+    this.bestRank = 99;
+    this.spawnTime = 0;
+  }
+
+  get maxSpeed() {
+    const s = CFG.PLAYER.BASE_SPEED * Math.pow(20 / (20 + this.r), CFG.PLAYER.SPEED_FALLOFF);
+    return Math.max(CFG.PLAYER.MIN_SPEED, s);
+  }
+  get influence() { return this.r * CFG.PHYSICS.INFLUENCE_MUL + CFG.PHYSICS.INFLUENCE_BASE; }
+
+  step(dt, world) {
+    
+    const dx = this.intentX - this.x, dy = this.intentY - this.y;
+    const dist = Math.hypot(dx, dy) || 1;
+    
+    const ease = clamp(dist / (this.r * 1.6 + 26), 0, 1);
+    const desiredVX = (dx / dist) * this.maxSpeed * ease;
+    const desiredVY = (dy / dist) * this.maxSpeed * ease;
+    
+    const k = CFG.PLAYER.ACCEL_LERP * (24 / (24 + this.r * 0.30));
+    this.vx = damp(this.vx, desiredVX, k, dt);
+    this.vy = damp(this.vy, desiredVY, k, dt);
+
+    this.integrate(dt, world);
+
+    this.pulse += dt * 2.1;
+    this.diskAngle += dt * (0.55 + 26 / (this.r + 26));
+    this.eatFlash = Math.max(0, this.eatFlash - dt * 2.6);
+    if (this.shield > 0) this.shield = Math.max(0, this.shield - dt);
+    if (this.mass > this.peakMass) this.peakMass = this.mass;
+
+    this.trail.push(this.x, this.y);
+    while (this.trail.length > 52) this.trail.splice(0, 2);
+  }
+
+  consume(other) {
+    this.setMass(this.mass + other.mass);   
+    this.absorbed++;
+    if (other.type === "player") this.rivalsEaten++;
+    this.eatFlash = 1;
+    if (other.type === "player") this.shield = 0;   
+  }
+
+  reset(x, y) {
+    this.dead = false;
+    this.setMass(CFG.PLAYER.START_MASS);
+    this.x = this.intentX = x;
+    this.y = this.intentY = y;
+    this.vx = this.vy = 0;
+    this.trail.length = 0;
+    this.absorbed = 0;
+    this.rivalsEaten = 0;
+    this.peakMass = this.mass;
+    this.bestRank = 99;
+    this.shield = CFG.PLAYER.SPAWN_SHIELD;
+    this.eatFlash = 0;
+  }
+}
+
+class Particle {
+  constructor(x, y, vx, vy, life, size, color) {
+    this.x = x; this.y = y; this.vx = vx; this.vy = vy;
+    this.life = life; this.maxLife = life;
+    this.size = size; this.color = color; this.dead = false;
+  }
+  step(dt) {
+    this.x += this.vx * dt; this.y += this.vy * dt;
+    this.vx *= 1 - 2.0 * dt; this.vy *= 1 - 2.0 * dt;
+    this.life -= dt;
+    if (this.life <= 0) this.dead = true;
+  }
+}
+
+
+class HumanlikeController {
+  constructor(game) {
+    this.game = game;
+
+    
+    const skill = rand(0.18, 0.95);
+    this.p = {
+      skill,
+      reaction:   rand(0.13, 0.22) + (1 - skill) * 0.28,  
+      aggression: rand(0.15, 0.95),
+      greed:      rand(0.2, 1.0),
+      caution:    rand(0.2, 1.0),
+      patience:   rand(0.5, 2.4),                          
+      tremor:     (1 - skill) * 30 + 5,                    
+      handSpeed:  700 + skill * 1700                       
+    };
+
+    this.seed = rand(0, 100);
+    this.state = "wander";
+    this.cx = 0; this.cy = 0;          
+    this.cursorInit = false;
+    this.goalX = 0; this.goalY = 0;
+    this.target = null;
+    this.threat = null;
+    this.noticeTimer = 0;              
+    this.decisionTimer = 0;
+    this.glanceTimer = 0;
+    this.hesitate = 0;
+    this.jt = rand(0, 50);
+    this.view = { prey: [], threats: [] };
+  }
+
+  
+
+  perception(player) { return player.r * 14 + 850; }
+
+  update(player, dt) {
+    if (!this.cursorInit) { this.cx = player.x; this.cy = player.y; this.cursorInit = true; }
+
+    this.jt += dt;
+    this.glanceTimer -= dt;
+    this.decisionTimer -= dt;
+    this.noticeTimer -= dt;
+    this.hesitate -= dt;
+
+    
+    if (this.glanceTimer <= 0) {
+      this.glanceTimer = rand(0.09, 0.17);
+      this.look(player);
+    }
+
+    
+    const t = this.view.threats[0] || null;
+    if (t && t !== this.threat) {
+      this.threat = t;
+      this.noticeTimer = this.p.reaction;      
+    } else if (!t) {
+      this.threat = null;
+    }
+
+    if (this.threat && this.noticeTimer <= 0) {
+      this.state = "flee";
+    } else if (this.state === "flee" && !this.threat) {
+      this.state = "wander";
+      this.decisionTimer = 0;
+    }
+
+    
+    if (this.state !== "flee" && this.decisionTimer <= 0) this.decide(player);
+
+    
+    let urgency = 0.5;
+    if (this.state === "flee" && this.threat) {
+      urgency = 1;
+      
+      const dx = player.x - this.threat.x, dy = player.y - this.threat.y;
+      const d = Math.hypot(dx, dy) || 1;
+      const panic = Math.sin(this.jt * 4.2 + this.seed) * (1 - this.p.skill) * 0.5;
+      const a = Math.atan2(dy, dx) + panic;
+      this.goalX = player.x + Math.cos(a) * 1100;
+      this.goalY = player.y + Math.sin(a) * 1100;
+    } else if (this.state === "hunt" && this.target && !this.target.dead) {
+      urgency = 0.55 + this.p.aggression * 0.45;
+      
+      const lead = this.p.skill * 0.35;
+      this.goalX = this.target.x + this.target.vx * lead;
+      this.goalY = this.target.y + this.target.vy * lead;
+    } else {
+      urgency = 0.35;
+    }
+
+    
+    if (this.hesitate > 0) { this.goalX = player.x; this.goalY = player.y; urgency = 0.2; }
+
+    this.moveHand(player, dt, urgency);
+  }
+
+  
+
+  look(player) {
+    const g = this.game;
+    const R = this.perception(player);
+    const R2 = R * R;
+    const prey = [], threats = [];
+    
+    const noise = () => 1 + rand(-0.3, 0.3) * (1 - this.p.skill);
+
+    for (const p of g.players) {
+      if (p === player || p.dead) continue;
+      const dx = p.x - player.x, dy = p.y - player.y;
+      const d2 = dx * dx + dy * dy;
+      if (d2 > R2) continue;                                  
+      const est = p.mass * noise();
+      if (est > player.mass * CFG.PHYSICS.EAT_RATIO) threats.push({ e: p, d2 });
+      else if (player.mass > est * CFG.PHYSICS.EAT_RATIO && p.shield <= 0) prey.push({ e: p, d2, w: 2.4 });
+    }
+    for (const e of g.food) {
+      const dx = e.x - player.x, dy = e.y - player.y;
+      const d2 = dx * dx + dy * dy;
+      if (d2 > R2) continue;
+      if (e.mass * noise() > player.mass / CFG.PHYSICS.EAT_RATIO) continue;
+      prey.push({ e, d2, w: 1 });
+    }
+
+    threats.sort((a, b) => a.d2 - b.d2);
+    this.view.threats = threats.map(x => x.e);
+    this.view.prey = prey;
+  }
+
+  
+
+  decide(player) {
+    this.decisionTimer = this.p.patience * rand(0.7, 1.4);
+
+    
+    if (chance(0.07 * (1 - this.p.skill) + 0.02)) {
+      this.hesitate = rand(0.2, 0.75);
+    }
+
+    let best = null, bestScore = -Infinity;
+    for (const c of this.view.prey) {
+      const e = c.e;
+      if (e.dead) continue;
+      const d = Math.sqrt(c.d2);
+      
+      let score = (e.mass * c.w * (c.w > 1 ? this.p.aggression * 2 : this.p.greed)) / (d + 120);
+      
+      if (e.type === "planet") score *= 0.6 + (1 - this.p.caution) * 0.9;
+      score *= rand(0.82, 1.18);                        
+      if (score > bestScore) { bestScore = score; best = e; }
+    }
+
+    if (best) {
+      this.state = "hunt";
+      this.target = best;
+      return;
+    }
+
+    
+    this.state = "wander";
+    this.target = null;
+    const cell = this.game.bestDensityCell(player.x, player.y, this.p.greed);
+    if (cell && chance(0.75)) {
+      this.goalX = cell.x + rand(-160, 160);
+      this.goalY = cell.y + rand(-160, 160);
+    } else {
+      this.goalX = clamp(player.x + rand(-1500, 1500), 80, CFG.WORLD.w - 80);
+      this.goalY = clamp(player.y + rand(-1500, 1500), 80, CFG.WORLD.h - 80);
+    }
+  }
+
+  
+
+  moveHand(player, dt, urgency) {
+    const p = this.p;
+    const dx = this.goalX - this.cx, dy = this.goalY - this.cy;
+    const d = Math.hypot(dx, dy) || 1;
+    const speed = p.handSpeed * (0.55 + urgency * 0.9);
+    const step = Math.min(d, speed * dt);
+    this.cx += dx / d * step;
+    this.cy += dy / d * step;
+
+    
+    const tr = p.tremor;
+    const jx = Math.sin(this.jt * 2.9 + this.seed) * tr + Math.sin(this.jt * 8.1 + this.seed * 2) * tr * 0.35;
+    const jy = Math.cos(this.jt * 2.3 + this.seed) * tr + Math.cos(this.jt * 7.3 + this.seed * 3) * tr * 0.35;
+
+    player.intentX = clamp(this.cx + jx, 0, CFG.WORLD.w);
+    player.intentY = clamp(this.cy + jy, 0, CFG.WORLD.h);
+  }
+}
+
+
+
+class RemoteIntentController {
+  constructor(x, y) { this.x = x; this.y = y; }
+  update(player) { player.intentX = this.x; player.intentY = this.y; }
+}
+
+const HANDLES = [
+  "kevin", "void_kitty", "xX_nova_Xx", "gg_ez", "mooncake", "not_a_bot", "sp4ce",
+  "lurker", "TinyTim", "BIGSHRIMP", "orbital", "dave", "zzz", "404", "pixel",
+  "hungrymoon", "yeet", "astro_j", "m1lk", "quasar_", "GARGANTUA", "M87*", "CYGNUS",
+  "vela", "ur mom", "singularity", "noodle", "eepy", "banana", "TON618"
+];
+const HUES = ["#7ec8ff", "#ff7ec8", "#9cff7e", "#c89cff", "#ffe07e", "#7effe0", "#ff9c7e", "#8fa0ff", "#ffb0d0"];
+
+class Game {
+  constructor(audio) {
+    this.world = { w: CFG.WORLD.w, h: CFG.WORLD.h };
+    this.audio = audio;
+    this.food = [];
+    this.players = [];
+    this.particles = [];
+    this.local = null;
+    this.time = 0;
+    this.state = "menu";          
+    this.events = [];             
+    this.feed = [];               
+    this.deathInfo = null;
+    this.deathCam = null;
+
+    
+    
+    this.gridCell = 400;
+    this.gridCols = Math.ceil(this.world.w / this.gridCell);
+    this.gridRows = Math.ceil(this.world.h / this.gridCell);
+    this.grid = new Float32Array(this.gridCols * this.gridRows);
+    this.gridTimer = 0;
+
+    
+    
+    
+    this.spaceCell = 320;
+    this.spaceCols = Math.ceil(this.world.w / this.spaceCell);
+    this.spaceRows = Math.ceil(this.world.h / this.spaceCell);
+    this.space = new Array(this.spaceCols * this.spaceRows);
+    for (let i = 0; i < this.space.length; i++) this.space[i] = [];
+  }
+
+  init() {
+    const W = this.world.w, H = this.world.h;
+    for (let i = 0; i < CFG.COUNTS.dust; i++)      this.food.push(new Dust(rand(0, W), rand(0, H)));
+    for (let i = 0; i < CFG.COUNTS.asteroids; i++) this.food.push(new Asteroid(rand(0, W), rand(0, H)));
+    for (let i = 0; i < CFG.COUNTS.planets; i++)   this.food.push(new Planet(rand(0, W), rand(0, H)));
+
+    const used = new Set();
+    for (let i = 0; i < CFG.COUNTS.bots; i++) this.spawnBot(used);
+    this.rebuildGrid();
+  }
+
+  
+
+  clearEntities() {
+    this.food.length = 0;
+    this.players.length = 0;
+    this.particles.length = 0;
+    this.feed.length = 0;
+    this.events.length = 0;
+    this.local = null;
+    this.deathInfo = null;
+    this.deathCam = null;
+    this.ranked = [];
+    this.time = 0;
+    this.state = "menu";
+  }
+
+  spawnBot(used) {
+    let name = pick(HANDLES), guard = 0;
+    if (used) { while (used.has(name) && guard++ < 40) name = pick(HANDLES); used.add(name); }
+    const spot = this.safeSpawn(null);
+    const b = new Player(spot.x, spot.y, name, pick(HUES));
+    b.isBot = true;
+    b.setMass(CFG.PLAYER.START_MASS * rand(0.85, 2.4));
+    b.shield = CFG.PLAYER.SPAWN_SHIELD;
+    b.spawnTime = this.time;
+    b.controller = new HumanlikeController(this);
+    this.players.push(b);
+    return b;
+  }
+
+  
+
+  spawnLocal(name, controller) {
+    if (!this.local) {
+      this.local = new Player(0, 0, name, "#ffb45e");
+      this.local.isLocal = true;
+      this.local.controller = controller;
+    }
+    this.local.name = name || "YOU";
+    const spot = this.safeSpawn(this.local);
+    this.local.reset(spot.x, spot.y);
+    this.local.spawnTime = this.time;
+    if (!this.players.includes(this.local)) this.players.push(this.local);
+    this.state = "playing";
+    this.deathInfo = null;
+    this.deathCam = null;
+    this.events.push({ type: "spawn", hole: this.local });
+  }
+
+  killLocal(killer) {
+    const me = this.local;
+    const rank = this.rankOf(me);
+    me.bestRank = Math.min(me.bestRank, rank);   
+    this.state = "dead";
+    this.deathCam = killer && !killer.dead ? killer : null;
+    this.deathInfo = {
+      killer: killer ? killer.name : "THE VOID",
+      peakMass: me.peakMass,
+      rank: me.bestRank,
+      time: this.time - me.spawnTime,
+      absorbed: me.absorbed,
+      rivalsEaten: me.rivalsEaten
+    };
+    this.events.push({ type: "death", hole: me, killer });
+  }
+
+  step(dt) {
+    this.time += dt;
+
+    
+    this.gridTimer -= dt;
+    if (this.gridTimer <= 0) { this.gridTimer = 0.5; this.rebuildGrid(); }
+
+    for (const p of this.players) { if (!p.dead && p.controller) p.controller.update(p, dt); }
+    for (const p of this.players) { if (!p.dead) p.step(dt, this.world); }
+
+    this.buildSpatial();           
+    this.applyGravity(dt);
+
+    for (const e of this.food) {
+      if (e.dead) continue;
+      const d = Math.exp(-CFG.PHYSICS.DRAG * dt);   
+      e.vx *= d; e.vy *= d;
+      e.integrate(dt, this.world);
+    }
+
+    this.buildSpatial();           
+    this.resolveEating();
+    for (const p of this.particles) p.step(dt);
+
+    this.updateRanks();
+    this.compact();
+    this.repopulate();
+
+    
+    for (let i = this.feed.length - 1; i >= 0; i--) {
+      this.feed[i].t -= dt;
+      if (this.feed[i].t <= 0) this.feed.splice(i, 1);
+    }
+  }
+
+  
+
+  rankOf(p) {
+    let rank = 1;
+    for (const o of this.players) {
+      if (o === p || o.dead) continue;
+      if (o.mass > p.mass) rank++;
+    }
+    return rank;
+  }
+
+  updateRanks() {
+    const sorted = this.players.filter(p => !p.dead).sort((a, b) => b.mass - a.mass);
+    for (let i = 0; i < sorted.length; i++) {
+      sorted[i].rank = i + 1;
+      if (i + 1 < sorted[i].bestRank) sorted[i].bestRank = i + 1;
+    }
+    this.ranked = sorted;
+  }
+
+  rebuildGrid() {
+    this.grid.fill(0);
+    for (const e of this.food) {
+      const cx = (e.x / this.gridCell) | 0, cy = (e.y / this.gridCell) | 0;
+      if (cx < 0 || cy < 0 || cx >= this.gridCols || cy >= this.gridRows) continue;
+      this.grid[cy * this.gridCols + cx] += e.mass;
+    }
+  }
+
+  
+
+  buildSpatial() {
+    for (const bucket of this.space) bucket.length = 0;
+    const cell = this.spaceCell;
+    const insert = e => {
+      const cx = (e.x / cell) | 0, cy = (e.y / cell) | 0;
+      if (cx < 0 || cy < 0 || cx >= this.spaceCols || cy >= this.spaceRows) return;
+      this.space[cy * this.spaceCols + cx].push(e);
+    };
+    for (const e of this.food) if (!e.dead) insert(e);
+    for (const p of this.players) if (!p.dead) insert(p);
+  }
+
+  
+
+  queryCircle(x, y, r, fn) {
+    const cell = this.spaceCell;
+    const x0 = Math.max(0, ((x - r) / cell) | 0), x1 = Math.min(this.spaceCols - 1, ((x + r) / cell) | 0);
+    const y0 = Math.max(0, ((y - r) / cell) | 0), y1 = Math.min(this.spaceRows - 1, ((y + r) / cell) | 0);
+    for (let cy = y0; cy <= y1; cy++) {
+      const base = cy * this.spaceCols;
+      for (let cx = x0; cx <= x1; cx++) {
+        const bucket = this.space[base + cx];
+        for (let i = 0; i < bucket.length; i++) fn(bucket[i]);
+      }
+    }
+  }
+
+  
+
+  bestDensityCell(x, y, greed) {
+    let best = null, bestScore = -Infinity;
+    for (let cy = 0; cy < this.gridRows; cy++) {
+      for (let cx = 0; cx < this.gridCols; cx++) {
+        const m = this.grid[cy * this.gridCols + cx];
+        if (m <= 0) continue;
+        const px = (cx + 0.5) * this.gridCell, py = (cy + 0.5) * this.gridCell;
+        const d = Math.hypot(px - x, py - y);
+        if (d > 2600) continue;
+        const score = (m * greed) / (d + 400);
+        if (score > bestScore) { bestScore = score; best = { x: px, y: py }; }
+      }
+    }
+    return best;
+  }
+
+  
+
+  applyGravity(dt) {
+    const { G, MAX_ACCEL, SWIRL } = CFG.PHYSICS;
+
+    for (const H of this.players) {
+      if (H.dead) continue;
+      const R = H.influence, R2 = R * R, Hm = H.mass;
+
+      const pullOne = (B) => {
+        if (B === H || B.dead) return;
+        if (B.type === "player" && B.mass >= Hm) return;   
+
+        const dx = H.x - B.x, dy = H.y - B.y;
+        const d2 = dx * dx + dy * dy;
+        if (d2 > R2 || d2 === 0) return;
+
+        const dist = Math.sqrt(d2);
+        const nx = dx / dist, ny = dy / dist;
+
+        
+        const soft = d2 + H.r * H.r * 0.55 + 40;
+        let a = G * Hm / soft;
+        if (a > MAX_ACCEL) a = MAX_ACCEL;
+
+        const t = 1 - dist / R;
+        const falloff = t * t;                    
+
+        B.vx += nx * a * dt;                      
+        B.vy += ny * a * dt;
+        const swirl = a * SWIRL * falloff;        
+        B.vx += -ny * swirl * dt;
+        B.vy +=  nx * swirl * dt;
+
+        
+
+        const proximity = clamp(1 - (dist - H.r) / (H.r * 4 + 60), 0, 1);
+        const s = 1 + (CFG.RENDER.SPAGHETTI_MAX - 1) * proximity * proximity;
+        if (s > B.stretch) { B.stretch = s; B.stretchAng = Math.atan2(dy, dx); }
+      };
+
+      this.queryCircle(H.x, H.y, R, pullOne);
+    }
+
+    for (const B of this.food) B.stretch = damp(B.stretch, 1, 5.5, dt);
+  }
+
+  
+
+  resolveEating() {
+    const { EAT_RATIO, EAT_OVERLAP } = CFG.PHYSICS;
+    const holes = this.players.slice().sort((a, b) => b.mass - a.mass);   
+
+    for (const H of holes) {
+      if (H.dead) continue;                                               
+
+      const tryEat = (B) => {
+        if (B === H || B.dead) return;                                    
+        if (B.shield > 0) return;                                         
+        if (H.mass < B.mass * EAT_RATIO) return;
+        const d = Math.hypot(B.x - H.x, B.y - H.y);
+        if (d > H.r * EAT_OVERLAP + B.r * 0.25) return;
+
+        B.dead = true;
+        H.consume(B);
+        this.spawnAbsorption(B, H);
+        this.events.push({ type: "absorb", x: B.x, y: B.y, r: B.r, hole: H, victim: B });
+
+        if (B.type === "player") {
+          this.feed.unshift({ a: H.name, b: B.name, mine: H === this.local, victimIsMe: B === this.local, t: 6 });
+          if (this.feed.length > 6) this.feed.length = 6;
+          if (B === this.local) this.killLocal(H);
+        }
+      };
+
+      
+      
+      
+      this.queryCircle(H.x, H.y, H.r * 1.6, tryEat);
+    }
+  }
+
+  spawnAbsorption(victim, hole) {
+    const max = CFG.RENDER.MAX_PARTICLES;
+    const room = max - this.particles.length;
+    if (room <= 0) return;                    
+    let n = clamp(Math.round(6 + victim.r * 1.15), 6, 64);
+    if (n > room) n = room;
+    for (let i = 0; i < n; i++) {
+      const a = rand(0, TAU), sp = rand(50, 60 + victim.r * 9);
+      this.particles.push(new Particle(
+        victim.x + Math.cos(a) * victim.r * 0.5,
+        victim.y + Math.sin(a) * victim.r * 0.5,
+        Math.cos(a) * sp + hole.vx * 0.5,
+        Math.sin(a) * sp + hole.vy * 0.5,
+        rand(0.25, 0.8),
+        rand(1, 2.6) + victim.r * 0.06,
+        victim.tint || victim.color || "#fff"
+      ));
+    }
+  }
+
+  compact() {
+    if (this.food.some(e => e.dead)) this.food = this.food.filter(e => !e.dead);
+    if (this.players.some(p => p.dead)) this.players = this.players.filter(p => !p.dead);
+    if (this.particles.some(p => p.dead)) this.particles = this.particles.filter(p => !p.dead);
+  }
+
+  
+
+  safeSpawn(who) {
+    const W = this.world.w, H = this.world.h;
+    let best = { x: W / 2, y: H / 2 }, bestD = -Infinity;
+    for (let i = 0; i < 24; i++) {
+      const x = rand(200, W - 200), y = rand(200, H - 200);
+      let nearest = Infinity;
+      for (const p of this.players) {
+        if (p === who || p.dead) continue;
+        if (who && p.mass < who.mass) continue;
+        nearest = Math.min(nearest, Math.hypot(p.x - x, p.y - y) - p.influence);
+      }
+      if (nearest === Infinity || nearest > 700) return { x, y };
+      if (nearest > bestD) { bestD = nearest; best = { x, y }; }
+    }
+    return best;
+  }
+
+  repopulate() {
+    const counts = { dust: 0, asteroid: 0, planet: 0 };
+    for (const e of this.food) counts[e.type]++;
+
+    const away = () => {
+      const anchor = this.state === "dead" ? this.deathCam : this.local;
+      for (let i = 0; i < 8; i++) {
+        const x = rand(0, this.world.w), y = rand(0, this.world.h);
+        if (!anchor || Math.hypot(x - anchor.x, y - anchor.y) > anchor.influence * 1.6) return { x, y };
+      }
+      return { x: rand(0, this.world.w), y: rand(0, this.world.h) };
+    };
+
+    while (counts.dust < CFG.COUNTS.dust)          { const p = away(); this.food.push(new Dust(p.x, p.y)); counts.dust++; }
+    while (counts.asteroid < CFG.COUNTS.asteroids) { const p = away(); this.food.push(new Asteroid(p.x, p.y)); counts.asteroid++; }
+    while (counts.planet < CFG.COUNTS.planets)     { const p = away(); this.food.push(new Planet(p.x, p.y)); counts.planet++; }
+
+    const wanted = CFG.COUNTS.bots + (this.state === "playing" ? 1 : 0);
+    const used = new Set(this.players.map(p => p.name));   
+    let guard = 0;
+    while (this.players.length < wanted && guard++ < 4) this.spawnBot(used);
+  }
+}
+
+return {
+  CFG, Game, Player, Dust, Asteroid, Planet, Particle,
+  HumanlikeController, RemoteIntentController,
+  encodePlayer, decodePlayer, encodeFood, decodeFood, FOOD_TYPES, FOOD_TYPES_REV,
+  nextId, clamp, lerp, damp, rand, randi, pick, chance,
+  radiusFromMass, massFromRadius, fmt, mmss, TAU, HANDLES, HUES
+};
+});
+
+</script>
+<script>
+
+
+"use strict";
+
+class Progression {
+  static QUESTS = [
+    { id: 1, name: "REACH 5000 MASS",      desc: "Grow to a peak mass of 5,000", track: "peakMass",    target: 5000, reward: 25 },
+    { id: 2, name: "EAT 10 RIVALS",        desc: "Devour 10 rival holes",        track: "rivalsEaten", target: 10,   reward: 40 },
+    { id: 3, name: "SURVIVE 2 MINUTES",    desc: "Stay alive for 2:00",          track: "time",         target: 120,  reward: 30 }
+  ];
+
+  static SHOP = {
+    disk: [
+      { id: "disk-cyan",    name: "CYAN DISK",     cost: 50, color: "#3ee8ff" },
+      { id: "disk-gold",    name: "GOLD DISK",     cost: 50, color: "#ffcf5e" },
+      { id: "disk-crimson", name: "CRIMSON DISK",  cost: 50, color: "#ff5e6c" },
+      { id: "disk-violet",  name: "VIOLET DISK",   cost: 50, color: "#b06eff" }
+    ],
+    trail: [
+      { id: "trail-emerald", name: "EMERALD TRAIL", cost: 40, color: "#54ff9f" },
+      { id: "trail-magenta", name: "MAGENTA TRAIL", cost: 40, color: "#ff54d8" },
+      { id: "trail-solar",   name: "SOLAR TRAIL",   cost: 40, color: "#ffb45e" }
+    ],
+    orb: [
+      { id: "orb-diamond", name: "ORBITING DIAMOND", cost: 60, color: "#ffffff" },
+      { id: "orb-twin",    name: "TWIN ORBITER",     cost: 60, color: "#7fd0ff" }
+    ]
+  };
+
+  static CATEGORY_NAMES = { disk: "ACCRETION DISKS", trail: "PHOTON RING TRAILS", orb: "ORBITING SHAPES" };
+
+  constructor() {
+    this.tokens = 0;
+    this.quests = {};
+    this.best = {};
+    this.unlocked = [];
+    this.equipped = {};
+    this._load();
+  }
+
+  
+  _load() {
+    try {
+      this.tokens = parseInt(localStorage.getItem("bh_saved_tokens") || "0", 10) || 0;
+      this.quests = JSON.parse(localStorage.getItem("bh_quests") || "null") || {};
+      this.best = JSON.parse(localStorage.getItem("bh_quest_best") || "{}") || {};
+      this.unlocked = JSON.parse(localStorage.getItem("bh_unlocked_cosmetics") || "[]") || [];
+      this.equipped = JSON.parse(localStorage.getItem("bh_equipped_cosmetics") || "{}") || {};
+    } catch (e) { 
+ }
+    
+    for (const q of Progression.QUESTS) if (!(q.id in this.quests)) this.quests[q.id] = false;
+    for (const q of Progression.QUESTS) if (!(q.track in this.best)) this.best[q.track] = 0;
+    this._saveAll();
+  }
+  _saveAll() {
+    try {
+      localStorage.setItem("bh_saved_tokens", String(this.tokens));
+      localStorage.setItem("bh_quests", JSON.stringify(this.quests));
+      localStorage.setItem("bh_quest_best", JSON.stringify(this.best));
+      localStorage.setItem("bh_unlocked_cosmetics", JSON.stringify(this.unlocked));
+      localStorage.setItem("bh_equipped_cosmetics", JSON.stringify(this.equipped));
+    } catch (e) {}
+  }
+
+  
+  addTokens(n) {
+    if (n > 0) { this.tokens += n; this._saveAll(); }
+    return this.tokens;
+  }
+  spendTokens(n) {
+    if (this.tokens < n) return false;
+    this.tokens -= n;
+    this._saveAll();
+    return true;
+  }
+
+  
+
+  endRun(stats) {
+    const runTokens = Math.floor((stats.peakMass || 0) / 500) + ((stats.rivalsEaten || 0) * 10);
+    let questRewards = 0;
+    const completed = [];
+    for (const q of Progression.QUESTS) {
+      const v = stats[q.track] || 0;
+      if (v > this.best[q.track]) this.best[q.track] = v;
+      if (!this.quests[q.id] && this.best[q.track] >= q.target) {
+        this.quests[q.id] = true;
+        questRewards += q.reward;
+        completed.push(q);
+      }
+    }
+    if (questRewards > 0) this.addTokens(questRewards);
+    this._saveAll();
+    return { runTokens, questRewards, completed };
+  }
+
+  questProgress(q) {
+    const v = this.best[q.track] || 0;
+    return { value: v, done: !!this.quests[q.id] };
+  }
+
+  
+  item(id) {
+    for (const cat of Object.keys(Progression.SHOP)) {
+      const found = Progression.SHOP[cat].find(i => i.id === id);
+      if (found) return Object.assign({ cat }, found);
+    }
+    return null;
+  }
+  owns(id) { return this.unlocked.includes(id); }
+  buy(id) {
+    const item = this.item(id);
+    if (!item || this.owns(id)) return "owned";
+    if (!this.spendTokens(item.cost)) return "broke";
+    this.unlocked.push(id);
+    this._saveAll();
+    return "ok";
+  }
+  equip(id) {
+    const item = this.item(id);
+    if (!item || !this.owns(id)) return false;
+    this.equipped[item.cat] = id;
+    this._saveAll();
+    return true;
+  }
+  
+
+  equippedColors() {
+    const out = { disk: null, trail: null, orb: null };
+    for (const cat of Object.keys(out)) {
+      const id = this.equipped[cat];
+      const item = id ? this.item(id) : null;
+      if (item) out[cat] = item.color;
+    }
+    return out;
+  }
+
+  
+  static fmt(n) { return Math.round(n).toLocaleString("en-US"); }
+
+  updateTokenUI() {
+    const el = document.getElementById("token-balance");
+    if (el) el.textContent = Progression.fmt(this.tokens);
+  }
+
+  renderQuests() {
+    const el = document.getElementById("quest-log");
+    if (!el) return;
+    let html = "";
+    for (const q of Progression.QUESTS) {
+      const p = this.questProgress(q);
+      const pct = Math.min(1, p.value / q.target);
+      const bar = "█".repeat(Math.round(pct * 10)).padEnd(10, "░");
+      html +=
+        '<div class="quest-entry">' +
+          '<div class="quest-entry-head">' +
+            '<span class="quest-name">' + q.name + '</span>' +
+            '<span class="quest-reward">+' + q.reward + ' TOKENS</span>' +
+          '</div>' +
+          '<div class="quest-desc">' + q.desc + '</div>' +
+          '<div class="quest-progress">' + bar + ' ' + Progression.fmt(p.value) + ' / ' + Progression.fmt(q.target) + '</div>' +
+          '<div class="quest-status' + (p.done ? ' quest-status-done">DONE' : '">IN PROGRESS') + '</div>' +
+        '</div>';
+    }
+    el.innerHTML = html;
+  }
+
+  renderShop() {
+    const el = document.getElementById("cosmetics-shop");
+    if (!el) return;
+    let html = "";
+    for (const cat of Object.keys(Progression.SHOP)) {
+      html += '<div class="shop-category">' +
+        '<div class="shop-category-name">' + Progression.CATEGORY_NAMES[cat] + '</div>';
+      for (const item of Progression.SHOP[cat]) {
+        const owned = this.owns(item.id);
+        const equipped = this.equipped[cat] === item.id;
+        html += '<div class="shop-item">' +
+          '<span class="shop-item-name">' + item.name + '</span>' +
+          '<span class="shop-item-cost">' + Progression.fmt(item.cost) + ' TOKENS</span>';
+        if (equipped) {
+          html += '<button class="shop-item-action shop-item-action-equipped" data-action="none" data-id="' + item.id + '" disabled>EQUIPPED</button>';
+        } else if (owned) {
+          html += '<button class="shop-item-action" data-action="equip" data-id="' + item.id + '">EQUIP</button>';
+        } else {
+          html += '<button class="shop-item-action" data-action="buy" data-id="' + item.id + '">BUY</button>';
+        }
+        html += '</div>';
+      }
+      html += '</div>';
+    }
+    el.innerHTML = html;
+  }
+
+  refreshUI() { this.updateTokenUI(); this.renderQuests(); this.renderShop(); }
+}
+
+if (typeof window !== "undefined") window.Progression = Progression;
+if (typeof module !== "undefined" && module.exports) module.exports = Progression;
+
+</script>
+<script>
+
+
+"use strict";
+
+class Plinko {
+  constructor(canvas) {
+    this.canvas = canvas;
+    this.ctx = canvas.getContext("2d");
+    this.W = canvas.width;
+    this.H = canvas.height;
+    
+    this.SLOTS = [1, 1.2, 1.5, 2, 1.5, 1.2, 1];
+    this.pegR = 5;
+    this.ballR = 9;
+    this.gravity = 1500;         
+    this.restitution = 0.34;     
+    this.onLanded = null;        
+    this.ball = null;
+    this.landed = false;
+    this.landedIdx = -1;
+    this.raf = null;
+    this.last = 0;
+    this.timer = 0;              
+    this.buildPegs();
+    this.drawIdle();
+  }
+
+  buildPegs() {
+    const pegs = [];
+    const rows = 12;
+    const top = 46, bottom = this.H - 78;          
+    const left = 24, right = this.W - 24;
+    for (let i = 0; i < rows; i++) {
+      const n = i + 1;
+      const y = top + (i * (bottom - top)) / (rows - 1);
+      for (let j = 0; j < n; j++) {
+        const x = n === 1 ? this.W / 2 : left + (j * (right - left)) / (n - 1);
+        pegs.push({ x, y, r: this.pegR });
+      }
+    }
+    this.pegs = pegs;
+    this.floorY = this.H - 60;
+    this.slotW = this.W / this.SLOTS.length;
+  }
+
+  
+  reset() {
+    this.ball = null;
+    this.landed = false;
+    this.landedIdx = -1;
+    if (this.raf) cancelAnimationFrame(this.raf);
+    this.raf = null;
+    this.drawIdle();
+  }
+
+  drop() {
+    if (this.landed || this.ball) return;
+    this.ball = { x: this.W / 2 + (Math.random() - 0.5) * 10, y: 12, vx: 0, vy: 0 };
+    this.landed = false;
+    this.timer = 0;
+    this.last = performance.now();
+    const loop = now => {
+      
+      if (!this.ball) { this.raf = null; return; }
+      const dt = Math.min((now - this.last) / 1000, 1 / 30);
+      this.last = now;
+      this.step(dt);
+      this.draw();
+      if (this.landed) { this.raf = null; return; }
+      this.raf = requestAnimationFrame(loop);
+    };
+    this.raf = requestAnimationFrame(loop);
+  }
+
+  
+  step(dt) {
+    const b = this.ball;
+    b.vy += this.gravity * dt;
+    b.x += b.vx * dt;
+    b.y += b.vy * dt;
+
+    
+    if (b.x < this.ballR) { b.x = this.ballR; b.vx *= -0.5; }
+    if (b.x > this.W - this.ballR) { b.x = this.W - this.ballR; b.vx *= -0.5; }
+
+    
+    for (const p of this.pegs) {
+      const dx = b.x - p.x, dy = b.y - p.y;
+      const d = Math.hypot(dx, dy);
+      const min = this.ballR + p.r;
+      if (d < min && d > 0) {
+        const nx = dx / d, ny = dy / d;
+        b.x = p.x + nx * min;
+        b.y = p.y + ny * min;
+        const vn = b.vx * nx + b.vy * ny;
+        if (vn < 0) {
+          b.vx -= (1 + this.restitution) * vn * nx;
+          b.vy -= (1 + this.restitution) * vn * ny;
+        }
+      }
+    }
+
+    
+    if (b.y + this.ballR >= this.floorY) {
+      b.y = this.floorY - this.ballR;
+      b.vy = 0;
+      b.vx *= 0.9;
+      if (Math.abs(b.vx) < 6) this.land(b.x);
+    }
+
+    
+    
+    this.timer += dt;
+    if (!this.landed && this.timer > 12) {
+      b.y = this.floorY - this.ballR;
+      b.vy = 0;
+      b.vx = 0;
+      this.land(b.x);
+    }
+  }
+
+  
+
+  land(slotX) {
+    this.landed = true;
+    this.landedIdx = Math.min(this.SLOTS.length - 1, Math.max(0, Math.floor(slotX / this.slotW)));
+    if (this.onLanded) this.onLanded(this.SLOTS[this.landedIdx], this.landedIdx);
+  }
+
+  
+  slotLabel(m) { return (m === Math.round(m) ? String(m) : m.toFixed(1)) + "x"; }
+
+  drawIdle() { this.draw(); }
+
+  draw() {
+    const ctx = this.ctx, W = this.W, H = this.H;
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = "rgba(4,10,18,0.55)";
+    ctx.fillRect(0, 0, W, H);
+
+    
+    for (let i = 0; i < this.SLOTS.length; i++) {
+      const x = i * this.slotW;
+      const hot = this.landed && i === this.landedIdx;
+      ctx.fillStyle = hot ? "rgba(120,222,255,0.55)" : "rgba(80,120,180,0.28)";
+      ctx.fillRect(x + 2, this.floorY, this.slotW - 4, H - this.floorY);
+      ctx.strokeStyle = "rgba(160,200,255,0.5)";
+      ctx.strokeRect(x + 2, this.floorY, this.slotW - 4, H - this.floorY);
+      ctx.fillStyle = hot ? "#ffffff" : "#a8d0f0";
+      ctx.font = "bold 15px monospace";
+      ctx.textAlign = "center";
+      ctx.fillText(this.slotLabel(this.SLOTS[i]), x + this.slotW / 2, this.floorY + 28);
+    }
+
+    
+    ctx.fillStyle = "rgba(170,200,240,0.75)";
+    for (const p of this.pegs) {
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.fill();
+    }
+
+    
+    if (this.ball) {
+      const b = this.ball;
+      ctx.save();
+      ctx.shadowBlur = 14; ctx.shadowColor = "#7fd0ff";
+      ctx.fillStyle = "#eaf6ff";
+      ctx.beginPath(); ctx.arc(b.x, b.y, this.ballR, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+    }
+  }
+}
+
+if (typeof window !== "undefined") window.Plinko = Plinko;
+if (typeof module !== "undefined" && module.exports) module.exports = Plinko;
+
+</script>
+<script>
+"use strict";
+
+
+let PROG = null;    
+let PAUSED = false; 
+
+
+
+class GameAudio {
+  constructor() {
+    this.ctx = null;
+    this.enabled = true;
+    this.ready = false;
+    this.lastAbsorb = 0;     
+  }
+
+  
+
+  unlock() {
+    if (this.ready) return;
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    this.ctx = new AC();
+    const c = this.ctx;
+
+    this.master = c.createGain();
+    this.master.gain.value = 0.9;
+    this.master.connect(c.destination);
+
+    
+    this.bus = c.createDynamicsCompressor();
+    this.bus.threshold.value = -18;
+    this.bus.ratio.value = 5;
+    this.bus.attack.value = 0.004;
+    this.bus.release.value = 0.22;
+    this.bus.connect(this.master);
+
+    
+    
+    const len = c.sampleRate * 2;
+    this.noise = c.createBuffer(1, len, c.sampleRate);
+    const d = this.noise.getChannelData(0);
+    for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+
+    this.startAmbience();
+    this.ready = true;
+  }
+
+  get t() { return this.ctx.currentTime; }
+  get on() { return this.ready && this.enabled && this.ctx.state === "running"; }
+
+  setEnabled(v) {
+    this.enabled = v;
+    if (this.ready) this.master.gain.setTargetAtTime(v ? 0.9 : 0, this.t, 0.05);
+  }
+
+  
+
+  startAmbience() {
+    const c = this.ctx, t = this.t;
+    const g = c.createGain(); g.gain.value = 0.0; g.connect(this.bus);
+    g.gain.setTargetAtTime(0.06, t, 3);
+
+    [55, 82.5].forEach((f, i) => {
+      const o = c.createOscillator();
+      o.type = "sine"; o.frequency.value = f * (i ? 1.003 : 1);
+      const og = c.createGain(); og.gain.value = i ? 0.35 : 0.5;
+      
+      const lfo = c.createOscillator(); lfo.frequency.value = 0.05 + i * 0.03;
+      const lg = c.createGain(); lg.gain.value = 0.22;
+      lfo.connect(lg); lg.connect(og.gain); lfo.start();
+      o.connect(og); og.connect(g); o.start();
+    });
+
+    const n = c.createBufferSource();
+    n.buffer = this.noise; n.loop = true;
+    const nf = c.createBiquadFilter(); nf.type = "lowpass"; nf.frequency.value = 220; nf.Q.value = 0.6;
+    const ng = c.createGain(); ng.gain.value = 0.05;
+    n.connect(nf); nf.connect(ng); ng.connect(g); n.start();
+
+    this.ambientGain = g;
+  }
+
+  
+
+  atten(dist, viewRadius) {
+    if (dist == null) return 1;
+    return clamp(1 - dist / (viewRadius * 1.9), 0, 1);
+  }
+
+  
+
+  absorb(victimRadius, dist, viewRadius, isPlayerKill) {
+    if (!this.on) return;
+    const now = this.t;
+    
+    if (victimRadius < 8 && now - this.lastAbsorb < 0.028) return;
+    this.lastAbsorb = now;
+
+    const c = this.ctx;
+    const size = clamp(victimRadius / 60, 0.02, 1.6);        
+    const vol = this.atten(dist, viewRadius) * (0.16 + size * 0.55) * (isPlayerKill ? 1.5 : 1);
+    if (vol < 0.006) return;
+
+    const dur = 0.10 + size * 0.55;
+    
+    const f0 = 480 / (0.35 + size * 1.7);
+    const f1 = f0 * 0.28;
+
+    
+    const o = c.createOscillator();
+    o.type = size > 0.5 ? "sine" : "triangle";
+    o.frequency.setValueAtTime(f0, now);
+    o.frequency.exponentialRampToValueAtTime(Math.max(24, f1), now + dur);
+    const og = c.createGain();
+    og.gain.setValueAtTime(0.0001, now);
+    og.gain.exponentialRampToValueAtTime(vol, now + 0.012);
+    og.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+    o.connect(og); og.connect(this.bus);
+    o.start(now); o.stop(now + dur + 0.05);
+
+    
+    const n = c.createBufferSource();
+    n.buffer = this.noise;
+    n.playbackRate.value = rand(0.8, 1.25);
+    const nf = c.createBiquadFilter();
+    nf.type = "lowpass";
+    nf.frequency.setValueAtTime(1400 + 2600 * (1 - size), now);
+    nf.frequency.exponentialRampToValueAtTime(120, now + dur * 0.9);
+    nf.Q.value = 1.4;
+    const ng = c.createGain();
+    ng.gain.setValueAtTime(vol * 0.75, now);
+    ng.gain.exponentialRampToValueAtTime(0.0001, now + dur * 0.95);
+    n.connect(nf); nf.connect(ng); ng.connect(this.bus);
+    n.start(now); n.stop(now + dur + 0.05);
+
+    
+    if (size > 0.35) {
+      const s = c.createOscillator();
+      s.type = "sine";
+      s.frequency.setValueAtTime(90 * (1 - size * 0.4), now);
+      s.frequency.exponentialRampToValueAtTime(28, now + dur * 1.3);
+      const sg = c.createGain();
+      sg.gain.setValueAtTime(0.0001, now);
+      sg.gain.exponentialRampToValueAtTime(vol * 0.9, now + 0.02);
+      sg.gain.exponentialRampToValueAtTime(0.0001, now + dur * 1.4);
+      s.connect(sg); sg.connect(this.bus);
+      s.start(now); s.stop(now + dur * 1.5);
+    }
+  }
+
+  
+
+  danger() {
+    if (!this.on) return;
+    const c = this.ctx, now = this.t;
+    const o = c.createOscillator();
+    o.type = "sawtooth";
+    o.frequency.setValueAtTime(70, now);
+    o.frequency.exponentialRampToValueAtTime(190, now + 0.5);
+    const f = c.createBiquadFilter(); f.type = "lowpass"; f.frequency.value = 500;
+    const g = c.createGain();
+    g.gain.setValueAtTime(0.0001, now);
+    g.gain.exponentialRampToValueAtTime(0.11, now + 0.25);
+    g.gain.exponentialRampToValueAtTime(0.0001, now + 0.6);
+    o.connect(f); f.connect(g); g.connect(this.bus);
+    o.start(now); o.stop(now + 0.65);
+  }
+
+  
+
+  death() {
+    if (!this.on) return;
+    const c = this.ctx, now = this.t;
+
+    if (this.ambientGain) {
+      this.ambientGain.gain.setTargetAtTime(0.005, now, 0.3);
+      this.ambientGain.gain.setTargetAtTime(0.06, now + 3.5, 1.5);
+    }
+
+    [220, 164.8, 110].forEach((f, i) => {
+      const o = c.createOscillator();
+      o.type = "sine";
+      o.frequency.setValueAtTime(f, now + i * 0.09);
+      o.frequency.exponentialRampToValueAtTime(f * 0.25, now + 2.2);
+      const g = c.createGain();
+      g.gain.setValueAtTime(0.0001, now + i * 0.09);
+      g.gain.exponentialRampToValueAtTime(0.16, now + i * 0.09 + 0.05);
+      g.gain.exponentialRampToValueAtTime(0.0001, now + 2.4);
+      o.connect(g); g.connect(this.bus);
+      o.start(now + i * 0.09); o.stop(now + 2.5);
+    });
+
+    const n = c.createBufferSource();
+    n.buffer = this.noise;
+    const nf = c.createBiquadFilter();
+    nf.type = "lowpass";
+    nf.frequency.setValueAtTime(3000, now);
+    nf.frequency.exponentialRampToValueAtTime(60, now + 1.8);
+    const ng = c.createGain();
+    ng.gain.setValueAtTime(0.24, now);
+    ng.gain.exponentialRampToValueAtTime(0.0001, now + 2.0);
+    n.connect(nf); nf.connect(ng); ng.connect(this.bus);
+    n.start(now); n.stop(now + 2.1);
+  }
+
+  
+
+  spawn() {
+    if (!this.on) return;
+    const c = this.ctx, now = this.t;
+    const o = c.createOscillator();
+    o.type = "sine";
+    o.frequency.setValueAtTime(90, now);
+    o.frequency.exponentialRampToValueAtTime(420, now + 0.35);
+    const g = c.createGain();
+    g.gain.setValueAtTime(0.0001, now);
+    g.gain.exponentialRampToValueAtTime(0.13, now + 0.06);
+    g.gain.exponentialRampToValueAtTime(0.0001, now + 0.5);
+    o.connect(g); g.connect(this.bus);
+    o.start(now); o.stop(now + 0.55);
+  }
+
+  ui() {
+    if (!this.on) return;
+    const c = this.ctx, now = this.t;
+    const o = c.createOscillator(); o.type = "square"; o.frequency.value = 660;
+    const g = c.createGain();
+    g.gain.setValueAtTime(0.0001, now);
+    g.gain.exponentialRampToValueAtTime(0.04, now + 0.006);
+    g.gain.exponentialRampToValueAtTime(0.0001, now + 0.09);
+    o.connect(g); g.connect(this.bus);
+    o.start(now); o.stop(now + 0.1);
+  }
+}
+
+
+
+
+
+class LocalMouseController {
+  constructor(input, camera) { this.input = input; this.camera = camera; }
+  update(player) {
+    
+    if (PAUSED) return;
+
+    const k = this.input.keys;
+    if (k.up || k.down || k.left || k.right) {
+      
+      
+      
+      const dx = (k.right ? 1 : 0) - (k.left ? 1 : 0);
+      const dy = (k.down ? 1 : 0) - (k.up ? 1 : 0);
+      const d = Math.hypot(dx, dy) || 1;
+      const reach = 320 + player.r * 1.8;   
+      player.intentX = player.x + (dx / d) * reach;
+      player.intentY = player.y + (dy / d) * reach;
+      return;
+    }
+
+    const p = this.camera.screenToWorld(this.input.mx, this.input.my);
+    player.intentX = p.x; player.intentY = p.y;
+    
+    
+  }
+}
+
+
+
+class Input {
+  constructor() {
+    this.mx = window.innerWidth / 2;
+    this.my = window.innerHeight / 2;
+    this.moved = false;
+    
+    this.keys = { up: false, down: false, left: false, right: false };
+    const set = (x, y) => { this.mx = x; this.my = y; this.moved = true; };
+    window.addEventListener("mousemove", e => set(e.clientX, e.clientY), { passive: true });
+    window.addEventListener("touchstart", e => { const t = e.touches[0]; if (t) set(t.clientX, t.clientY); }, { passive: true });
+    window.addEventListener("touchmove",  e => { const t = e.touches[0]; if (t) set(t.clientX, t.clientY); }, { passive: true });
+
+    const keyMap = {
+      ArrowUp: "up", KeyW: "up",
+      ArrowDown: "down", KeyS: "down",
+      ArrowLeft: "left", KeyA: "left",
+      ArrowRight: "right", KeyD: "right"
+    };
+    const typing = () => {
+      const a = document.activeElement;
+      return !!(a && (a.tagName === "INPUT" || a.tagName === "TEXTAREA"));
+    };
+    window.addEventListener("keydown", e => {
+      const k = keyMap[e.code];
+      if (!k || typing()) return;
+      e.preventDefault();                
+      this.keys[k] = true;
+    });
+    window.addEventListener("keyup", e => {
+      const k = keyMap[e.code];
+      if (k) this.keys[k] = false;
+    });
+    window.addEventListener("blur", () => {   
+      this.keys.up = this.keys.down = this.keys.left = this.keys.right = false;
+    });
+  }
+}
+
+
+
+class Camera {
+  constructor() {
+    this.x = CFG.WORLD.w / 2; this.y = CFG.WORLD.h / 2;
+    this.zoom = 1; this.targetZoom = 1;
+    this.vw = window.innerWidth; this.vh = window.innerHeight;
+    this.shake = 0; this.shx = 0; this.shy = 0;
+    this.hard = true;         
+  }
+  resize(w, h) { this.vw = w; this.vh = h; }
+
+  follow(target, dt) {
+    if (!target) return;
+    if (this.hard) { this.x = target.x; this.y = target.y; }
+    else {          
+      this.x = damp(this.x, target.x, 2.2, dt);
+      this.y = damp(this.y, target.y, 2.2, dt);
+    }
+    this.targetZoom = clamp(
+      CFG.CAMERA.VIEW_REF / (target.r + CFG.CAMERA.VIEW_PAD),
+      CFG.CAMERA.MIN_ZOOM, CFG.CAMERA.MAX_ZOOM
+    );
+    this.zoom = damp(this.zoom, this.targetZoom, CFG.CAMERA.LERP, dt);
+
+    this.shake = Math.max(0, this.shake - dt * 2.4);
+    const s = this.shake * this.shake * 13;
+    this.shx = rand(-s, s); this.shy = rand(-s, s);
+  }
+  kick(a) { this.shake = Math.min(1.4, this.shake + a); }
+
+  screenToWorld(sx, sy) {
+    return { x: (sx - this.vw / 2) / this.zoom + this.x, y: (sy - this.vh / 2) / this.zoom + this.y };
+  }
+  get viewRadius() { return Math.max(this.vw, this.vh) / 2 / this.zoom; }
+  viewBounds(margin = 200) {
+    const hw = this.vw / 2 / this.zoom + margin, hh = this.vh / 2 / this.zoom + margin;
+    return { x0: this.x - hw, y0: this.y - hh, x1: this.x + hw, y1: this.y + hh };
+  }
+}
+
+
+
+class Renderer {
+  constructor(canvas, camera) {
+    this.canvas = canvas;
+    this.ctx = canvas.getContext("2d", { alpha: false });
+    this.camera = camera;
+    this.dpr = 1;
+    this.stars = [];
+    this.buildStarfield();
+    this.resize();
+    window.addEventListener("resize", () => this.resize());
+  }
+
+  resize() {
+    this.dpr = Math.min(window.devicePixelRatio || 1, 2);   
+    const w = window.innerWidth, h = window.innerHeight;
+    this.canvas.width = Math.floor(w * this.dpr);
+    this.canvas.height = Math.floor(h * this.dpr);
+    this.canvas.style.width = w + "px";
+    this.canvas.style.height = h + "px";
+    this.camera.resize(w, h);
+    this.ctx.setTransform(1, 0, 0, 1, 0, 0);
+    this.ctx.fillStyle = "#000";
+    this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+  }
+
+  buildStarfield() {
+    this.stars = CFG.RENDER.STAR_LAYERS.map(layer => {
+      const pts = [], TILE = 2600;
+      for (let i = 0; i < layer.count; i++) {
+        pts.push({
+          x: rand(0, TILE), y: rand(0, TILE),
+          s: layer.size * rand(0.5, 1.5),
+          a: layer.alpha * rand(0.4, 1),
+          tw: rand(0, TAU),
+          c: chance(0.86) ? "#ffffff" : pick(["#bcd8ff", "#ffd9bc", "#d8bcff"])
+        });
+      }
+      return { pts, speed: layer.speed, tile: TILE };
+    });
+  }
+
+  draw(game) {
+    const ctx = this.ctx, cam = this.camera;
+
+    
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.globalCompositeOperation = "source-over";
+    ctx.fillStyle = "rgba(2, 2, 8, " + CFG.RENDER.TRAIL_FADE + ")";
+    ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+    
+    this.drawStars(game.time);
+
+    
+    ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+    ctx.translate(cam.vw / 2 + cam.shx, cam.vh / 2 + cam.shy);
+    ctx.scale(cam.zoom, cam.zoom);
+    ctx.translate(-cam.x, -cam.y);
+
+    const vb = cam.viewBounds(260);
+    this.drawWorldBounds(ctx);
+
+    ctx.globalCompositeOperation = "lighter";
+    for (const e of game.food) {
+      if (e.x < vb.x0 || e.x > vb.x1 || e.y < vb.y0 || e.y > vb.y1) continue;
+      if (e.type === "dust") this.drawDust(ctx, e, game.time);
+    }
+    ctx.globalCompositeOperation = "source-over";
+    for (const e of game.food) {
+      if (e.x < vb.x0 || e.x > vb.x1 || e.y < vb.y0 || e.y > vb.y1) continue;
+      if (e.type === "asteroid") this.drawAsteroid(ctx, e);
+      else if (e.type === "planet") this.drawPlanet(ctx, e);
+    }
+
+    ctx.globalCompositeOperation = "lighter";
+    for (const p of game.particles) this.drawParticle(ctx, p);
+    ctx.globalCompositeOperation = "source-over";
+
+    const holes = game.players.slice().sort((a, b) => a.r - b.r);   
+    for (const p of holes) this.drawBlackHole(ctx, p, game.time);
+
+    ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+    this.drawVignette(ctx, cam.vw, cam.vh);
+    this.drawMinimap(ctx, game);
+  }
+
+  
+
+  drawStars(time) {
+    const ctx = this.ctx, cam = this.camera;
+    ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+    ctx.globalCompositeOperation = "lighter";
+
+    for (const layer of this.stars) {
+      const tile = layer.tile;
+      const zk = 0.55 + cam.zoom * 0.45;
+      let ox = -(cam.x * layer.speed * zk) % tile;
+      let oy = -(cam.y * layer.speed * zk) % tile;
+      if (ox > 0) ox -= tile;
+      if (oy > 0) oy -= tile;
+      const cols = Math.ceil(cam.vw / tile) + 1, rows = Math.ceil(cam.vh / tile) + 1;
+
+      for (let cx = 0; cx <= cols; cx++) {
+        for (let cy = 0; cy <= rows; cy++) {
+          const bx = ox + cx * tile, by = oy + cy * tile;
+          for (let i = 0; i < layer.pts.length; i++) {
+            const s = layer.pts[i];
+            const x = bx + s.x, y = by + s.y;
+            if (x < -4 || x > cam.vw + 4 || y < -4 || y > cam.vh + 4) continue;
+            const tw = 0.72 + 0.28 * Math.sin(time * 1.7 + s.tw);
+            ctx.globalAlpha = s.a * tw;
+            ctx.fillStyle = s.c;
+            const sz = s.s * (0.7 + layer.speed);
+            ctx.fillRect(x, y, sz, sz);
+          }
+        }
+      }
+    }
+    ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = "source-over";
+  }
+
+  drawWorldBounds(ctx) {
+    ctx.save();
+    ctx.strokeStyle = "rgba(70,120,190,0.30)";
+    ctx.lineWidth = 3 / this.camera.zoom;
+    ctx.shadowBlur = 26; ctx.shadowColor = "rgba(70,140,255,0.55)";
+    ctx.strokeRect(0, 0, CFG.WORLD.w, CFG.WORLD.h);
+    ctx.restore();
+  }
+
+  drawDust(ctx, e, time) {
+    const tw = 0.65 + 0.35 * Math.sin(time * 3.1 + e.twinkle);
+    ctx.save();
+    ctx.translate(e.x, e.y);
+    ctx.rotate(e.stretchAng);                    
+    ctx.scale(e.stretch, 1 / Math.sqrt(e.stretch));   
+    ctx.globalAlpha = 0.9 * tw;
+    ctx.fillStyle = e.tint;
+    ctx.shadowBlur = 12; ctx.shadowColor = e.tint;
+    ctx.beginPath(); ctx.arc(0, 0, e.r, 0, TAU); ctx.fill();
+    ctx.globalAlpha = 0.28 * tw;
+    ctx.beginPath(); ctx.arc(0, 0, e.r * 2.6, 0, TAU); ctx.fill();
+    ctx.restore();
+    ctx.globalAlpha = 1;
+  }
+
+  drawAsteroid(ctx, e) {
+    ctx.save();
+    ctx.translate(e.x, e.y);
+    ctx.rotate(e.stretchAng);
+    ctx.scale(e.stretch, 1 / Math.sqrt(e.stretch));
+    ctx.rotate(e.angle - e.stretchAng);          
+
+    const n = e.lumps.length;
+    ctx.beginPath();
+    for (let i = 0; i <= n; i++) {
+      const a = (i % n) / n * TAU, rr = e.r * e.lumps[i % n];
+      const x = Math.cos(a) * rr, y = Math.sin(a) * rr;
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.closePath();
+
+    const g = ctx.createRadialGradient(-e.r * 0.35, -e.r * 0.35, e.r * 0.1, 0, 0, e.r * 1.25);
+    g.addColorStop(0, "#d8cfc0"); g.addColorStop(0.42, e.tint); g.addColorStop(1, "#14161c");
+    ctx.fillStyle = g; ctx.fill();
+    ctx.strokeStyle = "rgba(190,210,255,0.20)";
+    ctx.lineWidth = Math.max(0.6, e.r * 0.07);
+    ctx.stroke();
+
+    if (e.stretch > 1.25) {                      
+      ctx.globalCompositeOperation = "lighter";
+      ctx.globalAlpha = clamp((e.stretch - 1.25) / 2.6, 0, 0.85);
+      ctx.strokeStyle = "#ffb06a";
+      ctx.shadowBlur = 18; ctx.shadowColor = "#ff8a3a";
+      ctx.stroke();
+    }
+    ctx.restore();
+    ctx.globalAlpha = 1;
+  }
+
+  drawPlanet(ctx, e) {
+    ctx.save();
+    ctx.translate(e.x, e.y);
+    ctx.rotate(e.stretchAng);
+    ctx.scale(e.stretch, 1 / Math.sqrt(e.stretch));
+
+    if (e.hasRing) {
+      ctx.save();
+      ctx.rotate(e.ringTilt);
+      ctx.scale(1, 0.26);
+      ctx.strokeStyle = "rgba(220,210,190,0.42)"; ctx.lineWidth = e.r * 0.16;
+      ctx.beginPath(); ctx.arc(0, 0, e.r * 1.62, 0, TAU); ctx.stroke();
+      ctx.strokeStyle = "rgba(220,210,190,0.20)"; ctx.lineWidth = e.r * 0.07;
+      ctx.beginPath(); ctx.arc(0, 0, e.r * 1.92, 0, TAU); ctx.stroke();
+      ctx.restore();
+    }
+
+    const g = ctx.createRadialGradient(-e.r * 0.4, -e.r * 0.42, e.r * 0.08, 0, 0, e.r * 1.05);
+    g.addColorStop(0, e.pal[1]); g.addColorStop(0.5, e.pal[0]); g.addColorStop(1, e.pal[2]);
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.arc(0, 0, e.r, 0, TAU); ctx.fill();
+
+    ctx.save();                                   
+    ctx.beginPath(); ctx.arc(0, 0, e.r, 0, TAU); ctx.clip();
+    ctx.rotate(e.angle);
+    ctx.globalAlpha = 0.16; ctx.fillStyle = e.pal[2];
+    for (let i = -3; i <= 3; i++) ctx.fillRect(-e.r, i * e.r * 0.3, e.r * 2, e.r * 0.12);
+    ctx.restore();
+
+    ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = "lighter";     
+    const ag = ctx.createRadialGradient(0, 0, e.r * 0.88, 0, 0, e.r * 1.3);
+    ag.addColorStop(0, "rgba(0,0,0,0)");
+    ag.addColorStop(0.55, "rgba(150,200,255,0.16)");
+    ag.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = ag;
+    ctx.beginPath(); ctx.arc(0, 0, e.r * 1.3, 0, TAU); ctx.fill();
+    ctx.restore();
+    ctx.globalCompositeOperation = "source-over";
+    ctx.globalAlpha = 1;
+  }
+
+  drawParticle(ctx, p) {
+    const t = p.life / p.maxLife;
+    ctx.globalAlpha = t * t;
+    ctx.fillStyle = p.color;
+    ctx.shadowBlur = 14; ctx.shadowColor = p.color;
+    ctx.beginPath(); ctx.arc(p.x, p.y, p.size * (0.35 + t * 0.65), 0, TAU); ctx.fill();
+    ctx.globalAlpha = 1; ctx.shadowBlur = 0;
+  }
+
+  
+
+  drawBlackHole(ctx, p, time) {
+    const r = p.r;
+    const pulse = 1 + 0.055 * Math.sin(p.pulse * 1.6) + 0.03 * Math.sin(p.pulse * 3.7);
+
+    
+    const cos = (p.isLocal && PROG) ? PROG.equippedColors() : null;
+    const diskColor = (cos && cos.disk) || p.color;
+    const ringColor = (cos && cos.trail) || "#ffffff";
+    const orbColor = (cos && cos.orb) || null;
+    
+    
+    
+    const tint = diskColor;
+
+    
+    ctx.save();
+    ctx.globalCompositeOperation = "lighter";
+    const haloR = r * 6.2;
+    const halo = ctx.createRadialGradient(p.x, p.y, r * 0.9, p.x, p.y, haloR);
+    halo.addColorStop(0.00, this.rgba(tint, 0.30));
+    halo.addColorStop(0.16, this.rgba(tint, 0.13));
+    halo.addColorStop(0.45, "rgba(60,90,190,0.055)");
+    halo.addColorStop(1.00, "rgba(0,0,0,0)");
+    ctx.fillStyle = halo;
+    ctx.beginPath(); ctx.arc(p.x, p.y, haloR, 0, TAU); ctx.fill();
+    ctx.restore();
+
+    
+    const tr = p.trail;
+    if (tr.length >= 6) {
+      ctx.save();
+      ctx.globalCompositeOperation = "lighter";
+      const pts = tr.length / 2;
+      ctx.lineCap = "round"; ctx.strokeStyle = tint;
+      for (let i = 0; i < pts - 1; i++) {
+        const a = i / pts;
+        ctx.globalAlpha = a * a * 0.30;
+        ctx.lineWidth = r * 1.5 * a;
+        ctx.beginPath();
+        ctx.moveTo(tr[i * 2], tr[i * 2 + 1]);
+        ctx.lineTo(tr[i * 2 + 2], tr[i * 2 + 3]);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    
+    ctx.save();
+    ctx.translate(p.x, p.y);
+    ctx.globalCompositeOperation = "lighter";
+    ctx.rotate(p.diskAngle);
+    const diskR = r * 2.55 * pulse;
+    const disk = ctx.createRadialGradient(0, 0, r * 0.92, 0, 0, diskR);
+    disk.addColorStop(0.00, "rgba(255,255,255,0.96)");
+    disk.addColorStop(0.13, this.rgba(diskColor, 0.92));
+    disk.addColorStop(0.38, this.rgba(diskColor, 0.42));
+    disk.addColorStop(0.70, "rgba(120,70,220,0.16)");
+    disk.addColorStop(1.00, "rgba(0,0,0,0)");
+    ctx.fillStyle = disk;
+    ctx.shadowBlur = clamp(r * 1.6, 18, 40); ctx.shadowColor = tint;   
+    ctx.beginPath(); ctx.arc(0, 0, diskR, 0, TAU); ctx.fill();
+
+    ctx.shadowBlur = clamp(r * 0.9, 10, 40);      
+    for (let k = 0; k < 2; k++) {
+      const a0 = k * Math.PI + Math.sin(time * 0.7 + k) * 0.25;
+      ctx.globalAlpha = 0.42;
+      ctx.strokeStyle = k === 0 ? "#ffffff" : tint;
+      ctx.lineWidth = r * 0.30;
+      ctx.beginPath(); ctx.arc(0, 0, r * (1.42 + k * 0.34), a0, a0 + 1.15); ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+    ctx.restore();
+
+    
+    ctx.save();
+    ctx.globalCompositeOperation = "lighter";
+    ctx.strokeStyle = ringColor; ctx.globalAlpha = 0.85;
+    ctx.lineWidth = Math.max(0.8, r * 0.055);
+    ctx.shadowBlur = clamp(r * 1.1, 12, 40); ctx.shadowColor = tint;
+    ctx.beginPath(); ctx.arc(p.x, p.y, r * 1.045, 0, TAU); ctx.stroke();
+    ctx.restore();
+
+    
+    if (orbColor) {
+      ctx.save();
+      ctx.globalCompositeOperation = "lighter";
+      ctx.globalAlpha = 0.95;
+      ctx.fillStyle = orbColor;
+      for (let k = 0; k < 2; k++) {
+        const a = time * 1.4 + k * Math.PI;
+        ctx.beginPath();
+        ctx.arc(p.x + Math.cos(a) * r * 2.05, p.y + Math.sin(a) * r * 2.05, Math.max(1.6, r * 0.09), 0, TAU);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+
+    
+    ctx.save();
+    ctx.globalCompositeOperation = "source-over";
+    ctx.fillStyle = "#000000";
+    ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, TAU); ctx.fill();
+    const inner = ctx.createRadialGradient(p.x, p.y, r * 0.55, p.x, p.y, r);
+    inner.addColorStop(0, "rgba(0,0,0,1)"); inner.addColorStop(1, "rgba(12,6,26,1)");
+    ctx.fillStyle = inner;
+    ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, TAU); ctx.fill();
+    ctx.restore();
+
+    
+    if (p.eatFlash > 0.01) {
+      ctx.save();
+      ctx.globalCompositeOperation = "lighter";
+      const f = 1 - p.eatFlash;
+      ctx.globalAlpha = p.eatFlash * 0.7;
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = Math.max(1, r * 0.16 * p.eatFlash);
+      ctx.shadowBlur = 30; ctx.shadowColor = tint;
+      ctx.beginPath(); ctx.arc(p.x, p.y, r * (1.1 + f * 2.4), 0, TAU); ctx.stroke();
+      ctx.restore();
+    }
+
+    
+    if (p.shield > 0) {
+      ctx.save();
+      ctx.globalCompositeOperation = "lighter";
+      const a = clamp(p.shield / CFG.PLAYER.SPAWN_SHIELD, 0, 1);
+      ctx.globalAlpha = 0.22 + 0.30 * a * (0.6 + 0.4 * Math.sin(time * 9));
+      ctx.strokeStyle = "#9fd8ff";
+      ctx.lineWidth = Math.max(1, r * 0.10);
+      ctx.setLineDash([r * 0.55, r * 0.4]);
+      ctx.lineDashOffset = -time * r * 1.4;
+      ctx.shadowBlur = 22; ctx.shadowColor = "#5aa0ff";
+      ctx.beginPath(); ctx.arc(p.x, p.y, r * 2.0, 0, TAU); ctx.stroke();
+      ctx.restore();
+    }
+
+    
+    ctx.save();
+    const fs = Math.max(11 / this.camera.zoom, r * 0.42);
+    ctx.font = "500 " + fs.toFixed(1) + "px ui-monospace, Menlo, monospace";
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.globalAlpha = p.isLocal ? 0.95 : 0.6;
+    ctx.fillStyle = p.isLocal ? "#ffffff" : "#cfe4ff";
+    ctx.shadowBlur = 12; ctx.shadowColor = "#000";
+    ctx.fillText(p.name, p.x, p.y + r + fs * 1.25);
+    ctx.restore();
+    ctx.globalAlpha = 1; ctx.shadowBlur = 0;
+  }
+
+  drawVignette(ctx, w, h) {
+    const g = ctx.createRadialGradient(w / 2, h / 2, Math.min(w, h) * 0.34, w / 2, h / 2, Math.max(w, h) * 0.78);
+    g.addColorStop(0, "rgba(0,0,0,0)");
+    g.addColorStop(1, "rgba(0,0,0,0.62)");
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, w, h);
+  }
+
+  
+
+  drawMinimap(ctx, game) {
+    const S = 132, pad = 16;
+    const x0 = this.camera.vw - S - pad, y0 = this.camera.vh - S - pad;
+    const k = S / CFG.WORLD.w;
+
+    ctx.save();
+    ctx.globalAlpha = 0.82;
+    ctx.fillStyle = "rgba(3,8,16,0.62)";
+    ctx.fillRect(x0, y0, S, S);
+    ctx.strokeStyle = "rgba(70,120,190,0.42)";
+    ctx.lineWidth = 1;
+    ctx.strokeRect(x0 + 0.5, y0 + 0.5, S - 1, S - 1);
+
+    for (const e of game.food) {                  
+      if (e.type !== "planet") continue;
+      ctx.fillStyle = "rgba(150,180,220,0.5)";
+      ctx.beginPath(); ctx.arc(x0 + e.x * k, y0 + e.y * k, 1.8, 0, TAU); ctx.fill();
+    }
+    for (const p of game.players) {
+      const isMe = p.isLocal;
+      ctx.fillStyle = isMe ? "#ffb45e" : p.color;
+      ctx.globalAlpha = isMe ? 1 : 0.75;
+      ctx.beginPath();
+      ctx.arc(x0 + p.x * k, y0 + p.y * k, clamp(p.r * k * 2.2, 1.6, 5), 0, TAU);
+      ctx.fill();
+    }
+
+    ctx.globalAlpha = 0.55;                        
+    const vb = this.camera.viewBounds(0);
+    ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 1;
+    ctx.strokeRect(x0 + vb.x0 * k, y0 + vb.y0 * k, (vb.x1 - vb.x0) * k, (vb.y1 - vb.y0) * k);
+    ctx.restore();
+    ctx.globalAlpha = 1;
+  }
+
+  rgba(hex, a) {
+    const n = parseInt(hex.slice(1), 16);
+    return "rgba(" + ((n >> 16) & 255) + "," + ((n >> 8) & 255) + "," + (n & 255) + "," + a + ")";
+  }
+}
+
+
+
+
+
+class HUD {
+  constructor() {
+    const $ = id => document.getElementById(id);
+    this.mass = $("ui-mass"); this.x = $("ui-x"); this.y = $("ui-y");
+    this.fps = $("ui-fps"); this.ent = $("ui-ent");
+    this.time = $("ui-time"); this.eaten = $("ui-eaten");
+    this.board = $("ui-board"); this.feed = $("feed");
+    this.acc = 0; this.lastFeed = 0;
+  }
+
+  update(game, fps, dt) {
+    this.acc += dt;
+    if (this.acc < 0.1) return;                    
+    this.acc = 0;
+
+    const me = game.local;
+    const live = me && game.state === "playing";
+    this.mass.textContent = me ? fmt(live ? me.mass : me.peakMass) : "0";
+    this.x.textContent = me ? Math.round(me.x) : 0;
+    this.y.textContent = me ? Math.round(me.y) : 0;
+    this.fps.textContent = Math.round(fps);
+    this.ent.textContent = game.food.length + game.players.length + game.particles.length;
+    this.time.textContent = live ? mmss(game.time - me.spawnTime) : "0:00";
+    this.eaten.textContent = me ? me.absorbed : 0;
+
+    const top = (game.ranked || game.players).slice(0, 7);
+    this.board.innerHTML = top.map((p, i) =>
+      '<div class="' + (p.isLocal ? "me" : "") + '">' + (i + 1) + ". " + esc(p.name) + " &nbsp;" + fmt(p.mass) + "</div>"
+    ).join("");
+
+    if (game.feed.length !== this.lastFeed) {
+      this.lastFeed = game.feed.length;
+      this.feed.innerHTML = game.feed.map(f =>
+        '<div class="' + (f.mine ? "mine" : "") + '">' +
+        '<span class="ate">' + esc(f.a) + '</span> devoured ' +
+        '<span class="victim">' + esc(f.b) + '</span></div>'
+      ).join("");
+    }
+  }
+}
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+
+
+class NetworkController {
+  constructor(game, name) {
+    this.game = game;
+    this.name = name;
+    this.ws = null;
+    this.myId = 0;
+    this.room = null;
+    this.connected = false;
+    this.dead = false;
+    this.failed = null;
+    this.closed = false;
+    this.mySpawnTime = 0;
+
+    this.buffer = [];               
+    this.current = new Map();       
+    this.entities = new Map();      
+    this.lastIntentAt = 0;
+
+    this.onjoined = null;
+    this.onerror = null;
+    this.ondisconnect = null;
+  }
+
+  
+
+  connectPeer(transport, roomCode) {
+    this.closed = false;
+    this.ws = transport;
+    transport.onopen = () => {
+      try { transport.send(JSON.stringify({ t: "join", room: roomCode || null, name: this.name })); } catch (e) {}
+    };
+    transport.onmessage = e => {
+      let msg;
+      try { msg = JSON.parse(e.data); } catch (err) { return; }
+      this.onMessage(msg);
+    };
+    transport.onclose = () => this.onClose();
+    transport.onerror = () => {};
+    if (transport.readyState === 1 && transport.onopen) transport.onopen();   
+  }
+
+  onMessage(msg) {
+    if (msg.t === "joined") {
+      this.myId = msg.id;
+      this.room = msg.room;
+      this.mySpawnTime = msg.spawnTime || 0;
+      this.connected = true;
+      this.dead = false;
+      this.game.clearEntities();
+      this.entities.clear();
+      this.current.clear();
+      this.buffer.length = 0;
+      this.game.state = "playing";
+      if (this.onjoined) this.onjoined();
+    } else if (msg.t === "s") {
+      const now = performance.now();
+      const merged = new Map(this.current);
+      for (const a of msg.p || []) merged.set(a[0], decodePlayer(a));
+      for (const a of msg.f || []) merged.set(a[0], decodeFood(a));
+      for (const id of msg.d || []) merged.delete(id);
+      this.current = merged;
+      this.buffer.push({ t: now, serverTime: msg.time, state: merged });
+      if (this.buffer.length > 90) this.buffer.shift();
+    } else if (msg.t === "e") {
+      this.onEvent(msg);
+    } else if (msg.t === "err") {
+      this.failed = msg.code;
+    }
+  }
+
+  onEvent(msg) {
+    const g = this.game;
+    if (msg.kind === "absorb") {
+      const hole = this.entities.get(msg.holeId) || null;
+      const tint = msg.tint || "#fff";
+      g.events.push({
+        type: "absorb", x: msg.x, y: msg.y, r: msg.r, hole,
+        victim: { type: msg.isPlayer ? "player" : "food", r: msg.r, tint, color: tint }
+      });
+    } else if (msg.kind === "kill") {
+      g.feed.unshift({ a: msg.a, b: msg.b, mine: msg.mine, victimIsMe: msg.victimIsMe, t: 6 });
+      if (g.feed.length > 6) g.feed.length = 6;
+    } else if (msg.kind === "death") {
+      this.dead = true;
+      g.state = "dead";
+      g.deathInfo = { killer: msg.killer, peakMass: msg.peakMass, rank: msg.rank, time: msg.time, absorbed: msg.absorbed, rivalsEaten: msg.rivalsEaten || 0 };
+      g.deathCam = msg.killerId ? (this.entities.get(msg.killerId) || null) : null;
+      g.events.push({ type: "death", hole: this.entities.get(this.myId) || null, killer: g.deathCam });
+    } else if (msg.kind === "spawn") {
+      this.dead = false;
+      this.mySpawnTime = msg.spawnTime || 0;
+      g.state = "playing";
+      g.deathInfo = null;
+      g.deathCam = null;
+      g.events.push({ type: "spawn", hole: this.entities.get(this.myId) || null });
+    }
+  }
+
+  onClose() {
+    if (this.closed) return;                 
+    const wasLive = this.connected || !!this.room;
+    this.connected = false;
+    this.room = null;
+    if (this.failed) {
+      const code = this.failed;
+      this.failed = null;
+      if (this.onerror) this.onerror(code);  
+    } else if (wasLive && this.ondisconnect) {
+      this.ondisconnect();                   
+    } else if (this.onerror) {
+      this.onerror("connect");              
+    }
+  }
+
+  sendIntent(x, y) {
+    if (!this.ws || this.ws.readyState !== 1) return;
+    if (this.dead || this.game.state !== "playing") return;
+    const now = performance.now();
+    if (now - this.lastIntentAt < 33) return;
+    this.lastIntentAt = now;
+    this.ws.send(JSON.stringify({ t: "intent", x: Math.round(x), y: Math.round(y) }));
+  }
+
+  respawn() {
+    if (this.ws && this.ws.readyState === 1) this.ws.send(JSON.stringify({ t: "respawn" }));
+  }
+
+  close() {
+    this.closed = true;
+    this.connected = false;
+    this.room = null;
+    if (this.ws) { try { this.ws.close(); } catch (err) {} this.ws = null; }
+    this.entities.clear();
+    this.current.clear();
+    this.buffer.length = 0;
+    this.myId = 0;
+  }
+
+  
+
+  update() {
+    const g = this.game;
+    if (this.buffer.length === 0) return;
+
+    const now = performance.now();
+    const target = now - 100;                       
+    let a = this.buffer[0], b = this.buffer[this.buffer.length - 1];
+    for (const s of this.buffer) {
+      if (s.t <= target) a = s; else { b = s; break; }
+    }
+    const span = Math.max(1, b.t - a.t);
+    const alpha = clamp((target - a.t) / span, 0, 1);
+
+    g.food.length = 0;
+    g.players.length = 0;
+    const seen = new Set();
+
+    for (const [id, nstate] of b.state) {
+      const pstate = a.state.get(id);
+      const s = mixStates(pstate, nstate, alpha);
+      seen.add(id);
+      let e = this.entities.get(id);
+      if (!e) {
+        e = makeMirrorEntity(s);
+        e.id = id;
+        this.entities.set(id, e);
+      }
+      writeMirrorState(e, s);
+      if (s.kind === "player") {
+        e.isLocal = id === this.myId;
+        if (e.isLocal) {
+          e.trail.push(e.x, e.y);                  
+          while (e.trail.length > 52) e.trail.splice(0, 2);
+        }
+        g.players.push(e);
+      } else {
+        g.food.push(e);
+      }
+    }
+
+    for (const [id] of this.entities) {
+      if (!seen.has(id)) this.entities.delete(id);
+    }
+
+    const local = this.myId ? (this.entities.get(this.myId) || null) : null;
+    g.local = this.dead ? null : local;
+    if (g.local) g.local.spawnTime = this.mySpawnTime;
+
+    g.time = lerp(a.serverTime, b.serverTime, alpha);
+    g.ranked = g.players.slice().sort((x, y) => y.mass - x.mass);
+
+    if (g.deathCam && !this.entities.has(g.deathCam.id)) g.deathCam = null;
+  }
+}
+
+
+
+function mixStates(A, B, k) {
+  const out = Object.assign({}, B);
+  if (!A) return out;
+  out.x = lerp(A.x, B.x, k);
+  out.y = lerp(A.y, B.y, k);
+  out.r = lerp(A.r, B.r, k);
+  out.stretch = lerp(A.stretch == null ? 1 : A.stretch, B.stretch == null ? 1 : B.stretch, k);
+  out.stretchAng = lerp(A.stretchAng == null ? 0 : A.stretchAng, B.stretchAng == null ? 0 : B.stretchAng, k);
+  out.angle = lerp(A.angle == null ? 0 : A.angle, B.angle == null ? 0 : B.angle, k);
+  out.diskAngle = lerp(A.diskAngle == null ? 0 : A.diskAngle, B.diskAngle == null ? 0 : B.diskAngle, k);
+  out.pulse = lerp(A.pulse == null ? 0 : A.pulse, B.pulse == null ? 0 : B.pulse, k);
+  out.eatFlash = lerp(A.eatFlash == null ? 0 : A.eatFlash, B.eatFlash == null ? 0 : B.eatFlash, k);
+  out.shield = lerp(A.shield == null ? 0 : A.shield, B.shield == null ? 0 : B.shield, k);
+  return out;
+}
+
+function makeMirrorEntity(s) {
+  if (s.kind === "player") {
+    const p = new Player(s.x, s.y, s.name || "", s.color || "#fff");
+    p.isBot = !!s.isBot;
+    return p;
+  }
+  if (s.kind === "dust") return new Dust(s.x, s.y);
+  if (s.kind === "asteroid") return new Asteroid(s.x, s.y);
+  return new Planet(s.x, s.y);
+}
+
+function writeMirrorState(e, s) {
+  e.x = s.x; e.y = s.y; e.r = s.r;
+  e.mass = massFromRadius(s.r);
+  e.stretch = s.stretch;
+  e.stretchAng = s.stretchAng;
+  if (s.angle !== undefined) e.angle = s.angle;
+  if (s.tint !== undefined) e.tint = s.tint;
+  if (s.color !== undefined) e.color = s.color;
+  if (s.name !== undefined) e.name = s.name;
+  if (e.type === "player") {
+    e.diskAngle = s.diskAngle == null ? 0 : s.diskAngle;
+    e.pulse = s.pulse == null ? 0 : s.pulse;
+    e.eatFlash = s.eatFlash == null ? 0 : s.eatFlash;
+    e.shield = s.shield == null ? 0 : s.shield;
+    e.isBot = !!s.isBot;
+  }
+  if (s.hasRing !== undefined) e.hasRing = s.hasRing;
+  if (s.ringTilt !== undefined) e.ringTilt = s.ringTilt;
+  if (s.pal !== undefined) e.pal = s.pal;
+  if (s.lumps !== undefined) e.lumps = s.lumps;
+}
+
+
+
+
+
+const MAX_PLAYERS = 16;                    
+const PEER_PREFIX = "bh-";
+
+function genRoomCode() {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";   
+  let c = "";
+  for (let i = 0; i < 5; i++) c += chars[(Math.random() * chars.length) | 0];
+  return c;
+}
+
+function sanitizePeerName(raw) {
+  return String(raw || "").replace(/[|<>]/g, "").trim().toUpperCase().slice(0, 12) || "PLAYER";
+}
+
+
+
+class PeerSocket {
+  constructor(conn) {
+    this.conn = conn;
+    this.readyState = 0;                   
+    this.onopen = this.onmessage = this.onclose = this.onerror = null;
+    conn.on("open", () => { this.readyState = 1; if (this.onopen) this.onopen(); });
+    conn.on("data", d => {
+      if (!this.onmessage) return;
+      let str;
+      try { str = typeof d === "string" ? d : JSON.stringify(d); } catch (e) { str = String(d); }
+      this.onmessage({ data: str });
+    });
+    conn.on("close", () => { this.readyState = 3; if (this.onclose) this.onclose(); });
+    conn.on("error", () => { if (this.onerror) this.onerror(); });
+    if (conn.open) this.readyState = 1;
+  }
+  send(str) { if (this.conn && this.conn.open) { try { this.conn.send(str); } catch (e) {} } }
+  close() { try { if (this.conn) this.conn.close(); } catch (e) {} }
+}
+
+
+
+class PeerHost {
+  constructor(game, name, onReady, onError) {
+    this.game = game;
+    this.name = name;
+    this.onReady = onReady;                
+    this.onError = onError;                
+    this.peer = null;
+    this.roomCode = null;
+    this.members = new Map();              
+    this.closed = false;
+    this.retry = 0;
+  }
+
+  createRoom() {
+    const attempt = () => {
+      if (this.closed) return;
+      const code = genRoomCode();
+      const peer = new Peer(PEER_PREFIX + code, { debug: 0 });
+      this.peer = peer;
+      peer.on("open", () => { this.roomCode = code; if (this.onReady) this.onReady(code); });
+      peer.on("connection", conn => this.onConnection(conn));
+      peer.on("error", err => {
+        if (err && err.type === "unavailable-id" && this.retry++ < 8) {
+          try { peer.destroy(); } catch (e) {}
+          attempt();
+        } else if (!this.closed) {
+          this.close();
+          if (this.onError) this.onError("connect");
+        }
+      });
+      peer.on("disconnected", () => { if (!this.closed && !peer.destroyed) peer.reconnect(); });
+    };
+    attempt();
+  }
+
+  onConnection(conn) {
+    conn.on("data", data => {
+      let msg;
+      try { msg = typeof data === "string" ? JSON.parse(data) : data; } catch (e) { return; }
+      if (msg.t === "join") {
+        this.addMember(conn, msg.name);
+      } else if (msg.t === "intent") {
+        const m = this.members.get(conn);
+        if (m && !m.dead && m.player.controller) {
+          m.player.controller.x = Number(msg.x) || 0;
+          m.player.controller.y = Number(msg.y) || 0;
+        }
+      } else if (msg.t === "respawn") {
+        this.respawn(conn);
+      }
+    });
+    conn.on("close", () => this.removeMember(conn));
+  }
+
+  addMember(conn, rawName) {
+    const name = sanitizePeerName(rawName);
+    if (this.game.players.length >= MAX_PLAYERS) {
+      this.send(conn, { t: "err", code: "full" });
+      try { conn.close(); } catch (e) {}
+      return;
+    }
+    const taken = new Set([...this.members.values()].map(m => m.name));
+    let unique = name, n = 2;
+    while (taken.has(unique)) unique = name + n++;
+
+    const spot = this.game.safeSpawn(null);
+    const player = new Player(spot.x, spot.y, unique, HUES[(this.members.size + 1) % HUES.length]);
+    player.controller = new RemoteIntentController(spot.x, spot.y);
+    player.spawnTime = this.game.time;
+    player.shield = CFG.PLAYER.SPAWN_SHIELD;
+    this.game.players.push(player);
+    this.members.set(conn, { player, name: unique, dead: false, last: { p: new Map(), f: new Map() } });
+    this.send(conn, { t: "joined", id: player.id, room: this.roomCode, spawnTime: player.spawnTime });
+    this.game.events.push({ type: "spawn", hole: player });
+  }
+
+  removeMember(conn) {
+    const m = this.members.get(conn);
+    if (!m) return;
+    this.members.delete(conn);
+    if (m.player) m.player.dead = true;    
+  }
+
+  respawn(conn) {
+    const m = this.members.get(conn);
+    if (!m || !m.dead) return;
+    const spot = this.game.safeSpawn(m.player);
+    m.player.reset(spot.x, spot.y);        
+    m.player.spawnTime = this.game.time;
+    m.dead = false;
+    if (!this.game.players.includes(m.player)) this.game.players.push(m.player);
+    this.game.events.push({ type: "spawn", hole: m.player });
+  }
+
+  
+
+  broadcast() {
+    this.forwardEvents();
+    const game = this.game;
+    const time = game.time;
+
+    for (const [conn, m] of this.members) {
+      const p = [], f = [], d = [];
+      const seenP = new Set(), seenF = new Set();
+
+      for (const pl of game.players) {
+        if (pl.dead) continue;
+        seenP.add(pl.id);
+        const enc = encodePlayer(pl);
+        const key = enc.join("|");
+        if (m.last.p.get(pl.id) !== key) { m.last.p.set(pl.id, key); p.push(enc); }
+      }
+      for (const id of m.last.p.keys()) if (!seenP.has(id)) { m.last.p.delete(id); d.push(id); }
+
+      for (const fd of game.food) {
+        if (fd.dead) continue;
+        seenF.add(fd.id);
+        const enc = encodeFood(fd);
+        const key = enc.join("|");
+        if (m.last.f.get(fd.id) !== key) { m.last.f.set(fd.id, key); f.push(enc); }
+      }
+      for (const id of m.last.f.keys()) if (!seenF.has(id)) { m.last.f.delete(id); d.push(id); }
+
+      this.send(conn, { t: "s", time, p, f, d });
+    }
+  }
+
+  forwardEvents() {
+    const game = this.game;
+    for (const ev of game.events) {
+      if (ev.type === "absorb") {
+        const isPlayer = ev.victim.type === "player";
+        this.broadcastMsg({
+          t: "e", kind: "absorb",
+          x: Math.round(ev.x), y: Math.round(ev.y), r: Math.round(ev.r),
+          tint: ev.victim.color || ev.victim.tint, isPlayer,
+          holeId: ev.hole.id, victimId: ev.victim.id
+        });
+        if (isPlayer) {
+          for (const [conn, m] of this.members) {
+            const mine = m.player === ev.hole;
+            const victimIsMe = m.player === ev.victim;
+            this.send(conn, { t: "e", kind: "kill", a: ev.hole.name, b: ev.victim.name, mine, victimIsMe });
+            if (victimIsMe) {
+              m.dead = true;
+              const rank = game.rankOf(m.player);   
+              m.player.bestRank = Math.min(m.player.bestRank, rank);
+              this.send(conn, {
+                t: "e", kind: "death",
+                killer: ev.hole.name, killerId: ev.hole.id,
+                rank: m.player.bestRank, peakMass: m.player.peakMass,
+                time: game.time - m.player.spawnTime, absorbed: m.player.absorbed,
+                rivalsEaten: m.player.rivalsEaten
+              });
+            }
+          }
+        }
+      } else if (ev.type === "spawn") {
+        for (const [conn, m] of this.members) {
+          if (m.player === ev.hole) this.send(conn, { t: "e", kind: "spawn", spawnTime: ev.hole.spawnTime });
+        }
+      }
+    }
+  }
+
+  broadcastMsg(obj) { for (const conn of this.members.keys()) this.send(conn, obj); }
+
+  send(conn, obj) { if (conn && conn.open) { try { conn.send(JSON.stringify(obj)); } catch (e) {} } }
+
+  close() {
+    this.closed = true;
+    for (const conn of this.members.keys()) { try { conn.close(); } catch (e) {} }
+    this.members.clear();
+    if (this.peer) { try { this.peer.destroy(); } catch (e) {} this.peer = null; }
+    this.roomCode = null;
+  }
+}
+
+
+
+
+(function main() {
+  const $ = id => document.getElementById(id);
+  const canvas = $("game");
+  const camera = new Camera();
+  const input = new Input();
+  const renderer = new Renderer(canvas, camera);
+  const hud = new HUD();
+  const audio = new GameAudio();
+
+  const game = new Game(audio);
+  const localController = new LocalMouseController(input, camera);
+
+  
+  PROG = new Progression();
+  window.PROG = PROG;
+  PROG.refreshUI();
+
+  const menuEl = $("menu"), deathEl = $("death"), nameEl = $("name"),
+        roomEl = $("room"), statusEl = $("status"), soundEl = $("sound"),
+        roomtagEl = $("roomtag"), roomCodeEl = $("room-code"),
+        runRewardEl = $("run-reward"), plinkoSectionEl = $("plinko-section"),
+        plinkoCanvas = $("plinko-canvas"), plinkoStatusEl = $("plinko-status"),
+        plinkoDropEl = $("plinko-drop"), plinkoSkipEl = $("plinko-skip"),
+        plinkoReturnEl = $("plinko-return"), shopEl = $("cosmetics-shop"),
+        pauseEl = $("pause"), resumeEl = $("resume");
+
+  let net = null;      
+  let host = null;     
+  let mode = "solo";   
+
+  let plinko = null, pendingTokens = 0, plinkoResolved = false;
+
+  function setPaused(v) {
+    PAUSED = !!v;
+    pauseEl.classList.toggle("gone", !PAUSED);
+  }
+
+  const attractTarget = () => (game.ranked && game.ranked[0]) || game.players[0];
+
+  function setStatus(text, isError) {
+    statusEl.textContent = text || "";
+    statusEl.classList.toggle("err", !!isError);
+  }
+
+  function showRoom(code) {
+    roomCodeEl.textContent = code;
+    roomtagEl.classList.remove("gone");
+  }
+  function hideRoom() { roomtagEl.classList.add("gone"); }
+
+  function playerName() {
+    return (nameEl.value || "").trim().toUpperCase().slice(0, 12) || "YOU";
+  }
+
+  
+  function enterSolo() {
+    mode = "solo";
+    if (host) { host.close(); host = null; }
+    if (net) { net.close(); net = null; }
+    hideRoom();
+    game.clearEntities();
+    game.init();
+    game.state = "menu";
+    camera.hard = false;
+    const a0 = attractTarget();
+    if (a0) { camera.x = a0.x; camera.y = a0.y; }
+  }
+
+  enterSolo();
+
+  function startSolo() {
+    audio.unlock();
+    audio.ui();
+    menuEl.classList.add("gone");
+    deathEl.classList.add("gone");
+    setPaused(false);
+    camera.hard = true;
+    game.spawnLocal(playerName(), localController);
+    camera.x = game.local.x; camera.y = game.local.y;
+    setStatus("");
+  }
+
+  
+  function startHost() {
+    audio.unlock();
+    audio.ui();
+    const name = playerName();
+    if (typeof Peer === "undefined") {
+      setStatus("MULTIPLAYER NEEDS INTERNET — PEERJS NOT LOADED", true);
+      return;
+    }
+    if (host) host.close();
+    if (net) { net.close(); net = null; }
+    setStatus("CREATING ROOM...", false);
+
+    host = new PeerHost(game, name, code => {
+      
+      game.clearEntities();
+      game.init();                              
+      const spot = game.safeSpawn(null);
+      const me = new Player(spot.x, spot.y, name, "#ffb45e");
+      me.isLocal = true;
+      me.controller = localController;
+      me.spawnTime = game.time;
+      game.players.push(me);
+      game.local = me;
+      game.state = "playing";
+      mode = "host";
+      menuEl.classList.add("gone");
+      deathEl.classList.add("gone");
+      setPaused(false);
+      camera.hard = true;
+      showRoom(code);
+      setStatus("");
+    }, code => {
+      setStatus(code === "connect" ? "COULD NOT CREATE ROOM — CHECK INTERNET" : "ROOM ERROR", true);
+      enterSolo();
+      menuEl.classList.remove("gone");
+    });
+    host.createRoom();
+  }
+
+  
+  function joinPeerRoom(code) {
+    audio.unlock();
+    audio.ui();
+    const name = playerName();
+    if (typeof Peer === "undefined") {
+      setStatus("MULTIPLAYER NEEDS INTERNET — PEERJS NOT LOADED", true);
+      return;
+    }
+    setStatus("JOINING ROOM...", false);
+
+    const peer = new Peer({ debug: 0 });
+    let done = false;
+    const fail = text => {
+      if (done) return;
+      done = true;
+      setStatus(text, true);
+      try { peer.destroy(); } catch (e) {}
+      enterSolo();
+      menuEl.classList.remove("gone");
+    };
+    peer.on("error", err => {
+      if (err && err.type === "peer-unavailable") fail("NO SUCH ROOM — CHECK THE CODE");
+      else if (!done) fail("CAN'T REACH ROOM — CHECK INTERNET");
+    });
+    peer.on("open", () => {
+      const conn = peer.connect(PEER_PREFIX + code, { reliable: true });
+      conn.on("error", () => { if (!done) fail("CAN'T REACH ROOM — CHECK INTERNET"); });
+      conn.on("open", () => {
+        if (done) return;
+        net = new NetworkController(game, name);
+        net.onjoined = () => {
+          done = true;
+          mode = "multi";
+          menuEl.classList.add("gone");
+          deathEl.classList.add("gone");
+          setPaused(false);
+          camera.hard = true;
+          showRoom(net.room);
+          setStatus("");
+        };
+        net.onerror = c => {
+          const text = c === "full" ? "ROOM FULL"
+            : c === "invalid" ? "NO SUCH ROOM"
+            : "CONNECTION FAILED";
+          setStatus(text, true);
+          enterSolo();
+          menuEl.classList.remove("gone");
+        };
+        net.ondisconnect = () => {
+          setStatus("HOST LEFT — BACK TO SOLO", true);
+          enterSolo();
+          menuEl.classList.remove("gone");
+        };
+        net.connectPeer(new PeerSocket(conn), code);
+      });
+    });
+  }
+
+  function respawnOrRestart() {
+    if (pendingTokens > 0 && !plinkoResolved) finishPlinko(1);   
+    if (mode === "host" && host) startSolo();          
+    else if (net && net.connected) net.respawn();      
+    else startSolo();
+  }
+
+  function joinFromInput() {
+    const code = (roomEl.value || "").trim().toUpperCase().slice(0, 6);
+    if (!code) { setStatus("ENTER A ROOM CODE", true); return; }
+    joinPeerRoom(code);
+  }
+
+  $("play").addEventListener("click", startSolo);
+  $("create").addEventListener("click", startHost);
+  $("join").addEventListener("click", joinFromInput);
+  $("respawn").addEventListener("click", respawnOrRestart);
+
+  
+  plinkoDropEl.addEventListener("click", () => { if (plinko && !plinko.landed) plinko.drop(); });
+  plinkoSkipEl.addEventListener("click", () => finishPlinko(1));
+  plinkoReturnEl.addEventListener("click", () => {
+    plinkoSectionEl.hidden = true;
+    deathEl.classList.add("gone");
+    enterSolo();
+    menuEl.classList.remove("gone");
+  });
+
+  shopEl.addEventListener("click", e => {
+    const btn = e.target.closest("button[data-action]");
+    if (!btn || !btn.dataset.id) return;
+    const id = btn.dataset.id, action = btn.dataset.action;
+    if (action === "buy") {
+      const r = PROG.buy(id);
+      if (r === "ok") { setStatus("UNLOCKED: " + (PROG.item(id) || {}).name, false); PROG.renderShop(); }
+      else if (r === "broke") setStatus("NOT ENOUGH TOKENS", true);
+    } else if (action === "equip") {
+      PROG.equip(id);
+      PROG.renderShop();
+    }
+  });
+  roomEl.addEventListener("keydown", e => { if (e.key === "Enter") joinFromInput(); });
+  nameEl.addEventListener("keydown", e => { if (e.key === "Enter") startSolo(); });
+  window.addEventListener("keydown", e => {
+    if ((e.code === "Space" || e.code === "Enter") && game.state === "dead") { e.preventDefault(); respawnOrRestart(); }
+    
+    else if (e.code === "Escape" && game.state === "playing") setPaused(!PAUSED);
+  });
+
+  resumeEl.addEventListener("click", () => setPaused(false));
+
+  roomtagEl.addEventListener("click", () => {
+    const code = (net && net.room) || (host && host.roomCode);
+    if (code && navigator.clipboard) {
+      navigator.clipboard.writeText(code).catch(() => {});
+      setStatus("ROOM CODE COPIED", false);
+    }
+  });
+
+  soundEl.addEventListener("click", () => {
+    audio.unlock();
+    const on = !audio.enabled;
+    audio.setEnabled(on);
+    soundEl.textContent = on ? "SOUND ON" : "SOUND OFF";
+    soundEl.classList.toggle("off", !on);
+    if (on) audio.ui();
+  });
+
+  
+  let hidden = false;
+  document.addEventListener("visibilitychange", () => {
+    hidden = document.hidden;
+    if (!hidden) last = performance.now();
+    else if (game.state === "playing") setPaused(true);
+  });
+  window.addEventListener("blur", () => { if (game.state === "playing") setPaused(true); });
+
+  function showDeath() {
+    const d = game.deathInfo;
+    $("d-killer").textContent = d.killer;
+    $("d-mass").textContent = fmt(d.peakMass);
+    $("d-rank").textContent = "#" + (d.rank === 99 ? "—" : d.rank);
+    $("d-time").textContent = mmss(d.time);
+    $("d-eaten").textContent = d.absorbed;
+
+    
+    const result = PROG.endRun({ peakMass: d.peakMass, rivalsEaten: d.rivalsEaten || 0, time: d.time });
+    runRewardEl.textContent = "TOKENS EARNED: " + Progression.fmt(result.runTokens) +
+      (result.questRewards > 0 ? "  (+" + Progression.fmt(result.questRewards) + " QUEST BONUS)" : "");
+    PROG.updateTokenUI();
+    PROG.renderQuests();
+    pendingTokens = result.runTokens;
+    plinkoResolved = false;              
+    plinkoStatusEl.textContent = "";
+    plinkoReturnEl.hidden = true;
+    if (plinko) plinko.reset();          
+    
+    
+    if (!plinko) {
+      plinko = new Plinko(plinkoCanvas);
+      plinko.onLanded = finishPlinko;
+      plinkoCanvas.addEventListener("click", () => { if (plinko && !plinko.landed) plinko.drop(); });
+    }
+    plinkoDropEl.hidden = false;
+    plinkoSkipEl.hidden = false;
+    plinkoSectionEl.hidden = false;
+
+    deathEl.classList.remove("gone");
+  }
+
+  
+  function finishPlinko(mult) {
+    if (plinkoResolved) return;
+    plinkoResolved = true;
+    const gained = Math.round(pendingTokens * mult);
+    PROG.addTokens(gained);
+    plinkoStatusEl.textContent = "x" + (mult === Math.round(mult) ? mult : mult.toFixed(1)) +
+      " — +" + Progression.fmt(gained) + " TOKENS";
+    plinkoDropEl.hidden = true;
+    plinkoSkipEl.hidden = true;
+    plinkoReturnEl.hidden = false;
+    if (plinko) plinko.reset();
+    PROG.updateTokenUI();
+  }
+
+  
+  
+  
+  let acc = 0, last = performance.now();
+  let fps = 60, fpsAcc = 0, fpsFrames = 0;
+  let deathDelay = 0;
+
+  function frame(now) {
+    requestAnimationFrame(frame);
+    let dt = (now - last) / 1000;
+    last = now;
+    if (hidden || !isFinite(dt) || dt <= 0) return;
+    dt = Math.min(dt, CFG.PHYSICS.MAX_FRAME_DT);
+
+    fpsAcc += dt; fpsFrames++;
+    if (fpsAcc >= 0.25) { fps = fpsFrames / fpsAcc; fpsAcc = 0; fpsFrames = 0; }
+
+    
+    if (mode === "solo") {
+      if (!PAUSED) {                       
+        acc += dt;
+        let steps = 0;
+        while (acc >= CFG.PHYSICS.FIXED_DT && steps < 8) {   
+          game.step(CFG.PHYSICS.FIXED_DT);
+          acc -= CFG.PHYSICS.FIXED_DT;
+          steps++;
+        }
+        if (steps === 8) acc = 0;
+      }
+    } else if (mode === "host" && host) {
+      
+      
+      
+      acc += dt;
+      let steps = 0;
+      while (acc >= CFG.PHYSICS.FIXED_DT && steps < 8) {
+        game.step(CFG.PHYSICS.FIXED_DT);
+        acc -= CFG.PHYSICS.FIXED_DT;
+        steps++;
+      }
+      if (steps === 8) acc = 0;
+      host.broadcast();
+    } else if (net && net.connected) {
+      
+      
+      net.update();                                    
+      for (const p of game.particles) p.step(dt);      
+      game.particles = game.particles.filter(p => !p.dead);
+      for (let i = game.feed.length - 1; i >= 0; i--) {
+        game.feed[i].t -= dt;
+        if (game.feed[i].t <= 0) game.feed.splice(i, 1);
+      }
+    }
+
+    
+    const listener = game.state === "dead" ? game.deathCam : game.local;
+    for (const ev of game.events) {
+      if (ev.type === "absorb") {
+        const d = listener ? Math.hypot(ev.x - listener.x, ev.y - listener.y) : null;
+        audio.absorb(ev.r, d, camera.viewRadius, ev.victim && ev.victim.type === "player");
+        if (ev.hole === game.local) camera.kick(clamp(ev.r / 90, 0.04, 0.9));
+        if (net) game.spawnAbsorption({ x: ev.x, y: ev.y, r: ev.r, tint: ev.victim.tint }, ev.hole || { vx: 0, vy: 0 });
+      } else if (ev.type === "death") {
+        audio.death();
+        camera.kick(1.4);
+        camera.hard = false;
+        deathDelay = 1.15;                 
+        setPaused(false);                  
+      } else if (ev.type === "spawn") {
+        audio.spawn();
+        camera.hard = true;
+        deathEl.classList.add("gone");
+      }
+    }
+    game.events.length = 0;
+
+    if (deathDelay > 0) {
+      deathDelay -= dt;
+      if (deathDelay <= 0 && game.state === "dead") showDeath();
+    }
+
+    
+    let camTarget;
+    if (game.state === "playing") camTarget = game.local;
+    else if (game.state === "dead") {
+      if (game.deathCam && game.deathCam.dead) game.deathCam = null;   
+      camTarget = game.deathCam || attractTarget();
+    }
+    else camTarget = attractTarget();
+    camera.follow(camTarget, dt);
+
+    
+    if (mode === "multi" && net && net.connected && game.state === "playing" && game.local && !PAUSED) {
+      localController.update(game.local);
+      net.sendIntent(game.local.intentX, game.local.intentY);   
+    }
+
+    renderer.draw(game);
+    hud.update(game, fps, dt);
+  }
+
+  requestAnimationFrame(frame);
+  window.BLACKHOLE = { game, camera, renderer, audio, CFG, get net() { return net; }, get host() { return host; } };
+})();
+</script>
+</body>
+</html>
