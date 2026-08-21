@@ -6,44 +6,49 @@
 <title>Blackhole.io</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@300;400;500&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Stencil:wght@500;700&family=Archivo:wght@500;600;700&family=Courier+Prime:wght@400;700&family=Special+Elite&display=swap" rel="stylesheet" />
 <style>
-  /* dark editorial — ink, bone, one ember */
+  /* eclipse expedition theme, brass/khaki/oxide */
   :root {
-    --ink: oklch(0.10 0.015 250);
-    --ink-2: oklch(0.135 0.015 250);
-    --paper: oklch(0.95 0.008 90);
-    --dim: oklch(0.64 0.02 250);
-    --faint: oklch(0.46 0.015 250);
-    --line: oklch(0.30 0.02 250);
-    --line-soft: oklch(0.235 0.015 250);
-    --accent: oklch(0.78 0.13 65);
-    --accent-soft: oklch(0.78 0.13 65 / 0.12);
-    --danger: oklch(0.63 0.16 25);
-    --good: oklch(0.74 0.09 150);
-    --serif: "Instrument Serif", Georgia, serif;
-    --body: "Space Grotesk", system-ui, sans-serif;
-    --mono: "JetBrains Mono", ui-monospace, monospace;
+    --void: #100e09;
+    --void-2: #18150d;
+    --void-3: #221e13;
+    --chalk: #ece3c9;
+    --chalk-dim: #a89877;
+    --chalk-faint: #887a5c;
+    --brass: #c88b3f;
+    --brass-dim: rgba(200, 139, 63, 0.14);
+    --verdigris: #86a184;
+    --oxide: #c65b43;
+    --line: #453c29;
+    --line-soft: #2a2517;
+    --display: "Big Shoulders Stencil", Impact, "Arial Narrow", sans-serif;
+    --body: "Archivo", system-ui, sans-serif;
+    --mono: "Courier Prime", ui-monospace, "SFMono-Regular", monospace;
+    --dispatch: "Special Elite", "Courier Prime", monospace;
     --ease: cubic-bezier(0.22, 1, 0.36, 1);
   }
 
   html, body {
     margin: 0; padding: 0; width: 100%; height: 100%;
-    background: var(--ink);
+    background: var(--void);
     overflow: hidden;
     cursor: crosshair;
     font-family: var(--body);
   }
   #game { display: block; position: fixed; inset: 0; width: 100vw; height: 100vh; background: #000; }
 
-  /* film grain over everything, vignette under the UI */
+  ::selection { background: var(--brass); color: #100e09; }
+
+  /* worn field-paper grain over everything, vignette under the UI */
   #grain {
     position: fixed; inset: -50%;
     z-index: 999;
     pointer-events: none;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='0.55'/%3E%3C/svg%3E");
-    opacity: 0.05;
-    animation: grain 8s steps(10) infinite;
+    opacity: 0.045;
+    mix-blend-mode: overlay;
+    animation: grain 9s steps(8) infinite;
   }
   @keyframes grain {
     0%, 100% { transform: translate(0, 0); }
@@ -57,26 +62,34 @@
     position: fixed; inset: 0;
     z-index: 6;
     pointer-events: none;
-    background: radial-gradient(ellipse at center, transparent 55%, oklch(0.05 0.01 250 / 0.55) 100%);
+    background: radial-gradient(ellipse at center, transparent 52%, rgba(9, 7, 4, 0.6) 100%);
   }
 
   #hud {
     position: fixed; top: 16px; left: 16px; z-index: 10;
     font-family: var(--mono);
-    font-size: 11px; line-height: 1.8;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-    color: var(--dim);
+    font-size: 11px; line-height: 1.7;
+    letter-spacing: 0.04em;
+    color: var(--chalk-dim);
     font-feature-settings: "tnum" 1;
     pointer-events: none;
   }
-  #hud .k { color: var(--faint); }
-  #hud .big { font-size: 16px; color: var(--paper); letter-spacing: 0.2em; }
-  #hud #live { display: flex; align-items: center; gap: 8px; color: var(--faint); margin-bottom: 8px; }
+  #hud .k { color: var(--chalk-faint); }
+  #hud .big { font-size: 15px; color: var(--chalk); letter-spacing: 0.05em; }
+  #hud #ui-buffs { margin-top: 4px; display: flex; gap: 6px; }
+  #hud #ui-buffs span {
+    padding: 2px 6px; border: 1px solid currentColor; font-size: 9px; letter-spacing: 0.06em;
+  }
+  #hud #ui-buffs .buff-speed { color: #5ef0d8; }
+  #hud #ui-buffs .buff-magnet { color: #c98fff; }
+  #hud #live {
+    display: flex; align-items: center; gap: 8px; color: var(--chalk-faint); margin-bottom: 8px;
+    font-family: var(--body); font-weight: 700; text-transform: uppercase; letter-spacing: 0.14em; font-size: 10px;
+  }
   #hud #live .dot {
-    width: 5px; height: 5px;
-    border-radius: 50%;
-    background: var(--accent);
+    width: 6px; height: 6px;
+    background: var(--brass);
+    transform: rotate(45deg);
     animation: pulse-dot 3s var(--ease) infinite;
   }
   @keyframes pulse-dot {
@@ -87,29 +100,33 @@
   #board {
     position: fixed; top: 16px; right: 16px; text-align: right; z-index: 10;
     font-family: var(--mono);
-    font-size: 11px; line-height: 1.9;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: var(--dim);
+    font-size: 11px; line-height: 1.8;
+    letter-spacing: 0.02em;
+    color: var(--chalk-dim);
     font-feature-settings: "tnum" 1;
     pointer-events: none;
   }
-  #board .board-header { color: var(--faint); letter-spacing: 0.26em; margin-bottom: 6px; }
-  #board .me { color: var(--accent); }
+  #board .board-header {
+    font-family: var(--body); font-weight: 700; font-size: 10px;
+    color: var(--chalk-faint); letter-spacing: 0.18em; margin-bottom: 6px; text-transform: uppercase;
+  }
+  #board .me { color: var(--brass); }
+  #board .team-score { margin-bottom: 6px; padding-bottom: 6px; border-bottom: 1px solid var(--line-soft); font-weight: 700; }
+  #board .team-red { color: #d9605a; }
+  #board .team-blue { color: #5a8fd9; }
 
   #feed {
     position: fixed; top: 150px; right: 16px; text-align: right; z-index: 10;
     font-family: var(--mono);
     font-size: 10px; line-height: 2;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--dim);
+    letter-spacing: 0.02em;
+    color: var(--chalk-dim);
     pointer-events: none;
   }
   #feed div { animation: feed-in 0.5s var(--ease) both; }
-  #feed .ate { color: var(--paper); }
-  #feed .mine { color: var(--accent); }
-  #feed .victim { color: var(--danger); }
+  #feed .ate { color: var(--chalk); }
+  #feed .mine { color: var(--brass); }
+  #feed .victim { color: var(--oxide); }
   @keyframes feed-in { from { opacity: 0; transform: translateX(14px); } to { opacity: 1; transform: none; } }
 
   .screen {
@@ -117,211 +134,252 @@
     display: flex; flex-direction: column; align-items: center;
     justify-content: flex-start;
     gap: 16px; text-align: center;
-    padding: 40px 0;
+    padding: 48px 0;
     overflow-y: auto;
-    background: radial-gradient(ellipse at center, oklch(0.10 0.015 250 / 0.72), oklch(0.07 0.01 250 / 0.92));
+    background: radial-gradient(ellipse at center, rgba(16, 14, 9, 0.75), rgba(8, 7, 4, 0.94));
     transition: opacity 0.5s var(--ease);
   }
   .screen.gone { opacity: 0; pointer-events: none; }
 
   h1 {
     margin: 0;
-    font-family: var(--serif);
-    font-weight: 400;
-    font-size: clamp(44px, 8vw, 72px);
-    line-height: 0.95;
-    letter-spacing: -0.015em;
-    color: var(--paper);
+    font-family: var(--display);
+    font-weight: 500;
+    font-size: clamp(50px, 10vw, 86px);
+    line-height: 0.86;
+    letter-spacing: 0.01em;
+    text-transform: uppercase;
+    color: var(--chalk);
   }
   h1 em {
-    font-style: italic;
-    color: var(--accent);
+    font-style: normal;
+    color: var(--brass);
   }
   .tagline {
-    font-family: var(--body);
-    font-weight: 300;
-    color: var(--dim);
-    font-size: 13px;
-    letter-spacing: 0.3em;
-    line-height: 2.2;
+    font-family: var(--mono);
+    font-weight: 400;
+    color: var(--chalk-dim);
+    font-size: 12px;
+    letter-spacing: 0.1em;
+    line-height: 1.9;
     text-transform: uppercase;
   }
-  .stats { display: flex; gap: 40px; margin: 4px 0; }
-  .divider { width: 200px; height: 1px; background: var(--line); }
+  .stats { display: flex; gap: 36px; margin: 4px 0; }
+  .divider { width: 180px; height: 1px; background: var(--line); position: relative; }
+  .divider::before {
+    content: ""; position: absolute; left: 50%; top: -2px; transform: translateX(-50%);
+    width: 4px; height: 5px; background: var(--brass);
+  }
 
   input[type=text] {
-    background: var(--ink-2);
+    background: var(--void-2);
     border: 1px solid var(--line);
-    color: var(--paper);
+    color: var(--chalk);
     font-family: var(--mono);
     font-size: 12px;
-    letter-spacing: 0.24em;
+    letter-spacing: 0.1em;
     text-align: center;
     text-transform: uppercase;
     padding: 12px 16px;
     width: 230px;
-    border-radius: 2px;
+    border-radius: 0;
     outline: none;
-    transition: border-color 0.25s var(--ease);
+    transition: border-color 0.25s var(--ease), background 0.25s var(--ease);
   }
-  input[type=text]:focus { border-color: var(--accent); }
+  input[type=text]::placeholder { color: var(--chalk-faint); }
+  input[type=text]:focus { border-color: var(--brass); background: var(--void-3); }
 
   button {
     background: transparent;
     border: 1px solid var(--line);
-    color: var(--dim);
-    font-family: var(--mono);
+    color: var(--chalk-dim);
+    font-family: var(--body);
+    font-weight: 700;
     font-size: 11px;
-    letter-spacing: 0.26em;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
-    padding: 12px 28px;
-    border-radius: 2px;
+    padding: 12px 26px;
+    border-radius: 0;
     cursor: pointer;
-    transition: color 0.25s var(--ease), border-color 0.25s var(--ease), background 0.25s var(--ease), transform 0.15s var(--ease);
+    transition: color 0.2s var(--ease), border-color 0.2s var(--ease), background 0.2s var(--ease), transform 0.12s var(--ease);
   }
-  button:hover { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
-  button:active { transform: scale(0.98); }
+  button:hover { color: var(--brass); border-color: var(--brass); background: var(--brass-dim); }
+  button:active { transform: scale(0.97); }
+  button:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
+  button:disabled { opacity: 0.4; cursor: default; }
 
-  #death h1 { color: var(--danger); }
-  #death h1 em { color: var(--danger); }
+  #death h1 { color: var(--oxide); }
+  #death h1 em { color: var(--oxide); }
   #death .killer {
-    font-family: var(--mono);
-    font-size: 11px;
-    letter-spacing: 0.26em;
+    font-family: var(--dispatch);
+    font-size: 12px;
+    letter-spacing: 0.04em;
     text-transform: uppercase;
-    color: var(--dim);
+    color: var(--chalk-dim);
   }
   #death .killer b {
-    font-family: var(--serif);
-    font-style: italic;
+    font-family: var(--dispatch);
     font-weight: 400;
-    font-size: 18px;
-    letter-spacing: 0.02em;
-    color: var(--paper);
+    font-size: 17px;
+    letter-spacing: 0;
+    color: var(--chalk);
   }
 
-  .stat { min-width: 84px; }
+  .stat { min-width: 80px; }
   .stat .v {
     font-family: var(--mono);
-    font-size: 24px;
-    font-weight: 500;
-    color: var(--paper);
-    letter-spacing: 0.02em;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--chalk);
+    letter-spacing: 0;
     font-feature-settings: "tnum" 1;
   }
   .stat .l {
-    font-family: var(--mono);
-    font-size: 10px;
-    color: var(--faint);
-    letter-spacing: 0.22em;
+    font-family: var(--body);
+    font-weight: 700;
+    font-size: 9px;
+    color: var(--chalk-faint);
+    letter-spacing: 0.12em;
     margin-top: 4px;
+    text-transform: uppercase;
   }
-  .hint { font-size: 10px; color: var(--faint); letter-spacing: 0.22em; }
+  .hint {
+    font-family: var(--body); font-weight: 600;
+    font-size: 10px; color: var(--chalk-faint); letter-spacing: 0.1em; text-transform: uppercase;
+  }
 
   #sound {
     position: fixed; bottom: 16px; left: 16px; z-index: 12;
-    font-family: var(--mono);
-    font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase;
-    color: var(--dim);
-    border: 1px solid var(--line); padding: 8px 12px; border-radius: 2px;
-    cursor: pointer; background: transparent;
+    font-family: var(--body); font-weight: 700;
+    font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--chalk-dim);
+    border: 1px solid var(--line); padding: 8px 12px; border-radius: 0;
+    cursor: pointer; background: var(--void-2);
     transition: color 0.25s var(--ease), border-color 0.25s var(--ease);
   }
-  #sound:hover { color: var(--accent); border-color: var(--accent); }
-  #sound.off { color: var(--danger); border-color: var(--danger); }
+  #sound:hover { color: var(--brass); border-color: var(--brass); }
+  #sound.off { color: var(--oxide); border-color: var(--oxide); }
 
   #roomtag {
     position: fixed; top: 16px; left: 50%; transform: translateX(-50%); z-index: 11;
     font-family: var(--mono);
-    font-size: 11px; letter-spacing: 0.26em;
+    font-size: 11px; letter-spacing: 0.08em;
     text-transform: uppercase;
-    color: var(--accent);
-    padding: 8px 16px;
-    border: 1px solid oklch(0.78 0.13 65 / 0.35);
-    border-radius: 2px;
-    background: var(--ink-2);
+    color: var(--brass);
+    padding: 8px 18px;
+    border: 1px solid var(--brass);
+    border-radius: 0;
+    background: var(--void-2);
     cursor: pointer;
   }
-  #roomtag b { color: var(--paper); font-weight: 500; }
+  #roomtag b { color: var(--chalk); font-weight: 700; }
+  #daily-date { font-family: var(--mono); font-weight: 400; opacity: 0.7; margin-left: 4px; }
   #roomtag.gone { display: none; }
-  .row { display: flex; gap: 16px; align-items: center; justify-content: center; flex-wrap: wrap; }
+  .row { display: flex; gap: 14px; align-items: center; justify-content: center; flex-wrap: wrap; }
   .row input[type=text] { width: 150px; padding: 10px 12px; }
   .status {
     min-height: 16px;
-    font-family: var(--mono);
+    font-family: var(--body); font-weight: 700;
     font-size: 10px;
-    letter-spacing: 0.22em;
+    letter-spacing: 0.1em;
     text-transform: uppercase;
-    color: var(--dim);
+    color: var(--chalk-dim);
   }
-  .status.err { color: var(--danger); }
+  .status.err { color: var(--oxide); }
 
   .token-balance-display {
     padding: 8px 20px;
-    border: 1px solid oklch(0.78 0.13 65 / 0.35);
-    border-radius: 2px;
+    border: 1px solid var(--line);
+    border-radius: 0;
     font-family: var(--mono);
     font-size: 12px;
-    letter-spacing: 0.22em;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
-    color: var(--accent);
+    color: var(--brass);
     font-feature-settings: "tnum" 1;
-    background: var(--ink-2);
+    background: var(--void-2);
   }
   .token-balance-display b {
-    color: var(--paper);
-    font-weight: 500;
+    color: var(--chalk);
+    font-weight: 700;
   }
 
   .shop-container,
-  .quest-container {
+  .quest-container,
+  .settings-container,
+  .stats-container {
     width: min(92vw, 420px);
     text-align: left;
   }
   .shop-summary,
-  .quest-summary {
-    padding: 8px 12px;
+  .quest-summary,
+  .settings-summary {
+    padding: 9px 14px;
     border: 1px solid var(--line);
-    border-radius: 2px;
-    font-family: var(--mono);
+    border-radius: 0;
+    font-family: var(--body);
+    font-weight: 700;
     font-size: 11px;
-    letter-spacing: 0.22em;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
-    color: var(--paper);
-    background: var(--ink-2);
+    color: var(--chalk);
+    background: var(--void-2);
     cursor: pointer;
     list-style: none;
-    transition: border-color 0.25s var(--ease);
+    transition: border-color 0.2s var(--ease);
   }
   .shop-summary::-webkit-details-marker,
-  .quest-summary::-webkit-details-marker {
+  .quest-summary::-webkit-details-marker,
+  .settings-summary::-webkit-details-marker {
     display: none;
   }
+  .shop-summary::after,
+  .quest-summary::after,
+  .settings-summary::after { content: "+"; float: right; color: var(--brass); }
+  details[open] .shop-summary::after,
+  details[open] .quest-summary::after,
+  details[open] .settings-summary::after { content: "\2013"; }
   .shop-summary:hover,
   .quest-summary:hover,
+  .settings-summary:hover,
   details[open] .shop-summary,
-  details[open] .quest-summary {
-    border-color: var(--accent);
+  details[open] .quest-summary,
+  details[open] .settings-summary {
+    border-color: var(--brass);
   }
 
   .cosmetics-shop,
-  .quest-log {
+  .quest-log,
+  .settings-panel {
     margin-top: 8px;
-    padding: 6px 12px;
+    padding: 8px 14px;
     border: 1px solid var(--line);
-    border-radius: 2px;
+    border-radius: 0;
     max-height: 34vh;
     overflow-y: auto;
-    background: var(--ink-2);
+    background: var(--void-2);
   }
+  .cosmetics-shop::-webkit-scrollbar,
+  .quest-log::-webkit-scrollbar,
+  .settings-panel::-webkit-scrollbar { width: 8px; }
+  .cosmetics-shop::-webkit-scrollbar-track,
+  .quest-log::-webkit-scrollbar-track,
+  .settings-panel::-webkit-scrollbar-track { background: var(--void); }
+  .cosmetics-shop::-webkit-scrollbar-thumb,
+  .quest-log::-webkit-scrollbar-thumb,
+  .settings-panel::-webkit-scrollbar-thumb { background: var(--line); }
+  .cosmetics-shop::-webkit-scrollbar-thumb:hover,
+  .quest-log::-webkit-scrollbar-thumb:hover,
+  .settings-panel::-webkit-scrollbar-thumb:hover { background: var(--brass); }
 
   .shop-category-name {
     margin: 10px 4px 4px;
-    font-family: var(--mono);
+    font-family: var(--body);
+    font-weight: 700;
     font-size: 10px;
-    letter-spacing: 0.22em;
+    letter-spacing: 0.12em;
     text-transform: uppercase;
-    color: var(--faint);
+    color: var(--chalk-faint);
   }
   .shop-item {
     display: flex;
@@ -336,32 +394,33 @@
   .shop-item-name {
     flex: 1;
     text-align: left;
-    font-family: var(--mono);
+    font-family: var(--body);
+    font-weight: 600;
     font-size: 11px;
-    letter-spacing: 0.14em;
+    letter-spacing: 0.02em;
     text-transform: uppercase;
-    color: var(--paper);
+    color: var(--chalk);
   }
   .shop-item-cost {
     font-family: var(--mono);
     font-size: 10px;
-    color: var(--accent);
+    color: var(--brass);
     white-space: nowrap;
     font-feature-settings: "tnum" 1;
   }
   .shop-item .shop-item-action {
     padding: 8px 14px;
     font-size: 10px;
-    letter-spacing: 0.2em;
+    letter-spacing: 0.06em;
   }
   .shop-item-action-equipped {
     border-color: var(--line);
-    color: var(--faint);
+    color: var(--chalk-faint);
     cursor: default;
   }
   .shop-item-action-equipped:hover {
     background: transparent;
-    color: var(--faint);
+    color: var(--chalk-faint);
   }
 
   .quest-entry {
@@ -378,49 +437,52 @@
     gap: 10px;
   }
   .quest-name {
-    font-family: var(--mono);
+    font-family: var(--body);
+    font-weight: 600;
     font-size: 11px;
-    letter-spacing: 0.14em;
+    letter-spacing: 0.02em;
     text-transform: uppercase;
-    color: var(--paper);
+    color: var(--chalk);
   }
   .quest-reward {
     font-family: var(--mono);
     font-size: 10px;
-    color: var(--accent);
+    color: var(--brass);
     white-space: nowrap;
   }
   .quest-desc {
     margin-top: 3px;
+    font-family: var(--body);
     font-size: 11px;
-    font-weight: 300;
-    color: var(--dim);
+    font-weight: 400;
+    color: var(--chalk-dim);
   }
   .quest-progress {
     margin-top: 5px;
     font-family: var(--mono);
     font-size: 10px;
-    color: var(--dim);
+    color: var(--chalk-dim);
     font-feature-settings: "tnum" 1;
   }
   .quest-status {
     margin-top: 4px;
-    font-family: var(--mono);
+    font-family: var(--body);
+    font-weight: 700;
     font-size: 9px;
-    letter-spacing: 0.22em;
+    letter-spacing: 0.12em;
     text-transform: uppercase;
-    color: var(--faint);
+    color: var(--chalk-faint);
   }
   .quest-status-done {
-    color: var(--good);
+    color: var(--verdigris);
   }
 
   .run-reward {
     font-family: var(--mono);
     font-size: 13px;
-    letter-spacing: 0.16em;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
-    color: var(--paper);
+    color: var(--chalk);
     font-feature-settings: "tnum" 1;
   }
   .plinko-section {
@@ -433,42 +495,154 @@
     display: none;
   }
   .plinko-title {
-    font-family: var(--mono);
+    font-family: var(--body);
+    font-weight: 700;
     font-size: 11px;
-    letter-spacing: 0.26em;
+    letter-spacing: 0.14em;
     text-transform: uppercase;
-    color: var(--accent);
+    color: var(--brass);
   }
   .plinko-canvas {
     max-width: min(92vw, 560px);
     height: auto;
     border: 1px solid var(--line);
-    border-radius: 2px;
-    background: var(--ink);
+    border-radius: 0;
+    background: var(--void);
   }
   .plinko-status {
     min-height: 16px;
     font-family: var(--mono);
     font-size: 12px;
-    letter-spacing: 0.18em;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
-    color: var(--good);
+    color: var(--verdigris);
   }
   #plinko-skip {
     border-color: var(--line);
-    color: var(--dim);
+    color: var(--chalk-dim);
   }
   #plinko-skip:hover {
-    background: oklch(0.64 0.02 250 / 0.1);
-    color: var(--paper);
+    background: rgba(168, 152, 119, 0.1);
+    color: var(--chalk);
   }
   #plinko-return {
-    border-color: var(--good);
-    color: var(--good);
+    border-color: var(--verdigris);
+    color: var(--verdigris);
   }
   #plinko-return:hover {
-    background: oklch(0.74 0.09 150 / 0.1);
+    background: rgba(134, 161, 132, 0.12);
   }
+
+  .station-record {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    color: var(--chalk-dim);
+    font-feature-settings: "tnum" 1;
+  }
+  .station-record b { color: var(--brass); font-weight: 700; }
+  .station-record[hidden] { display: none; }
+
+  .tint-row { display: flex; gap: 10px; align-items: center; justify-content: center; }
+  .tint-label {
+    font-family: var(--body); font-weight: 700; font-size: 9px;
+    letter-spacing: 0.12em; text-transform: uppercase; color: var(--chalk-faint);
+  }
+  .tint-swatch {
+    width: 20px; height: 20px;
+    border: 1px solid var(--line);
+    background: var(--swatch, var(--chalk));
+    cursor: pointer;
+    padding: 0;
+    transition: border-color 0.2s var(--ease), transform 0.12s var(--ease);
+  }
+  .tint-swatch:hover { transform: scale(1.12); }
+  .tint-swatch.active { border-color: var(--chalk); border-width: 2px; }
+
+  .mode-row { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+  .mode-btn { padding: 7px 12px; font-size: 9px; letter-spacing: 0.06em; }
+  .mode-btn.active { color: var(--brass); border-color: var(--brass); background: var(--brass-dim); }
+
+  .teams-check {
+    display: flex; align-items: center; gap: 8px; cursor: pointer;
+    font-family: var(--body); font-weight: 600; font-size: 11px;
+    letter-spacing: 0.04em; text-transform: uppercase; color: var(--chalk-dim);
+  }
+
+  #ui-match {
+    margin-top: 4px; font-family: var(--mono); font-size: 11px; color: var(--brass);
+  }
+
+  .settings-row {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px; padding: 8px 4px; border-bottom: 1px solid var(--line-soft);
+  }
+  .settings-row:last-child { border-bottom: none; }
+  .settings-row-label {
+    font-family: var(--body); font-weight: 600; font-size: 11px;
+    letter-spacing: 0.04em; text-transform: uppercase; color: var(--chalk);
+  }
+  .settings-row-control { display: flex; align-items: center; gap: 8px; }
+  .quality-toggle {
+    padding: 7px 12px; font-size: 10px; letter-spacing: 0.06em;
+  }
+  input[type=range] {
+    -webkit-appearance: none; appearance: none;
+    width: 110px; height: 2px; background: var(--line);
+    outline: none; cursor: pointer;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none;
+    width: 13px; height: 13px; background: var(--brass); border-radius: 0;
+    cursor: pointer;
+  }
+  input[type=range]::-moz-range-thumb {
+    width: 13px; height: 13px; background: var(--brass); border: none; border-radius: 0;
+    cursor: pointer;
+  }
+  input[type=checkbox] {
+    -webkit-appearance: none; appearance: none;
+    width: 16px; height: 16px;
+    border: 1px solid var(--line); background: var(--void);
+    cursor: pointer; position: relative;
+  }
+  input[type=checkbox]:checked { border-color: var(--brass); background: var(--brass-dim); }
+  input[type=checkbox]:checked::after {
+    content: ""; position: absolute; left: 3px; top: 3px; width: 8px; height: 8px; background: var(--brass);
+  }
+
+  #killstreak {
+    position: fixed; top: 84px; left: 50%; transform: translateX(-50%) translateY(-6px);
+    z-index: 13; pointer-events: none;
+    font-family: var(--display); font-weight: 500; font-size: 30px;
+    letter-spacing: 0.02em; text-transform: uppercase;
+    color: var(--brass);
+    text-shadow: 0 2px 0 rgba(0, 0, 0, 0.6);
+    opacity: 0;
+    transition: opacity 0.18s var(--ease), transform 0.18s var(--ease);
+  }
+  #killstreak.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  #tutorial {
+    position: fixed; left: 16px; bottom: 60px; z-index: 14;
+    width: min(80vw, 320px);
+    padding: 14px 16px;
+    background: var(--void-2);
+    border: 1px solid var(--brass);
+    text-align: left;
+    transition: opacity 0.4s var(--ease), transform 0.4s var(--ease);
+  }
+  #tutorial.gone { opacity: 0; transform: translateY(8px); pointer-events: none; }
+  #tutorial .tutorial-title {
+    font-family: var(--body); font-weight: 700; font-size: 10px;
+    letter-spacing: 0.14em; text-transform: uppercase; color: var(--brass);
+    margin-bottom: 6px;
+  }
+  #tutorial .tutorial-body {
+    font-family: var(--body); font-size: 12px; line-height: 1.5; color: var(--chalk-dim);
+    margin-bottom: 10px;
+  }
+  #tutorial button { padding: 8px 16px; font-size: 10px; }
 
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after {
@@ -480,6 +654,9 @@
 </style>
 </head>
 <body>
+<!-- eclipse expedition theme: brass/khaki/oxide, stencil type. themed off real eclipse
+     observation trips since the game's whole thing is real gravity -->
+
 <canvas id="game"></canvas>
 <div id="grain" aria-hidden="true"></div>
 
@@ -489,53 +666,98 @@
   <div><span class="k">X</span> <span id="ui-x">0</span> &nbsp; <span class="k">Y</span> <span id="ui-y">0</span></div>
   <div><span class="k">FPS</span> <span id="ui-fps">0</span> &nbsp; <span class="k">ENT</span> <span id="ui-ent">0</span></div>
   <div><span class="k">TIME</span> <span id="ui-time">0:00</span> &nbsp; <span class="k">EATEN</span> <span id="ui-eaten">0</span></div>
+  <div id="ui-buffs"></div>
+  <div id="ui-match"></div>
 </div>
 
 <div id="board">
-  <div class="board-header">SINGULARITIES</div>
+  <div class="board-header">STATION ROSTER</div>
   <div id="ui-board"></div>
 </div>
 <div id="feed"></div>
+<div id="killstreak"></div>
+<div id="tutorial" class="gone">
+  <div class="tutorial-title">FIELD NOTE</div>
+  <div class="tutorial-body">Consume anything smaller. Flee anything bigger. Hold shift to boost — it costs mass, so spend it to escape or to close a gap.</div>
+  <button id="tutorial-dismiss">UNDERSTOOD</button>
+</div>
 
-<div id="sound">SOUND ON</div>
-<div id="roomtag" class="gone">ROOM <b id="room-code">—</b> · TAP TO COPY</div><div class="screen" id="menu">
+<div id="sound">AUDIO ON</div>
+<div id="roomtag" class="gone">STATION <b id="room-code">—</b> · TAP TO COPY</div><div class="screen" id="menu">
   <h1>BLACK<em>HOLE</em></h1>
   <div class="divider"></div>
-  <div class="tagline">SWALLOW DUST. THEN ASTEROIDS. THEN PLANETS.<br>THEN EVERYONE ELSE.</div>
-  <input type="text" id="name" maxlength="12" placeholder="YOUR NAME" autocomplete="off" spellcheck="false" />
-  <div class="row">
-    <button id="play">SOLO</button>
-    <button id="create">CREATE ROOM</button>
+  <div class="tagline">OBSERVATION BRIEF: CONSUME DUST. THEN ASTEROIDS. THEN PLANETS.<br>THEN EVERY OTHER STATION.</div>
+  <div class="station-record" id="station-record" hidden>BEST MASS <b id="record-mass">0</b> &nbsp; LONGEST WATCH <b id="record-time">0:00</b></div>
+  <input type="text" id="name" maxlength="12" placeholder="OBSERVER NAME" autocomplete="off" spellcheck="false" />
+  <div class="tint-row">
+    <span class="tint-label">MODE</span>
+    <div class="mode-row" id="mode-row">
+      <button type="button" class="mode-btn active" data-mode="classic">CLASSIC</button>
+      <button type="button" class="mode-btn" data-mode="timed">TIMED</button>
+      <button type="button" class="mode-btn" data-mode="elimination">LAST STANDING</button>
+    </div>
+  </div>
+  <div class="tint-row">
+    <span class="tint-label">STATION</span>
+    <label class="teams-check"><input type="checkbox" id="teams-toggle" /> TEAMS (RED VS BLUE)</label>
   </div>
   <div class="row">
-    <input type="text" id="room" maxlength="6" placeholder="ROOM CODE" autocomplete="off" spellcheck="false" />
-    <button id="join">JOIN</button>
+    <button id="play">SOLO WATCH</button>
+    <button id="create">OPEN STATION</button>
+  </div>
+  <div class="row">
+    <input type="text" id="room" maxlength="6" placeholder="STATION CODE" autocomplete="off" spellcheck="false" />
+    <button id="join">JOIN STATION</button>
+  </div>
+  <div class="row">
+    <button id="daily">DAILY CHALLENGE <span id="daily-date"></span></button>
+  </div>
+  <div class="tint-row">
+    <span class="tint-label">TINT</span>
+    <div id="tint-swatches"></div>
   </div>
   <div class="token-balance-display">TOKENS <b id="token-balance">0</b></div>
   <details class="shop-container">
-    <summary class="shop-summary">COSMETICS SHOP</summary>
+    <summary class="shop-summary">FIELD KIT</summary>
     <div class="cosmetics-shop" id="cosmetics-shop"></div>
   </details>
   <details class="quest-container">
-    <summary class="quest-summary">QUESTS</summary>
+    <summary class="quest-summary">EXPEDITION LOG</summary>
     <div class="quest-log" id="quest-log"></div>
+  </details>
+  <details class="settings-container">
+    <summary class="settings-summary">STATION SETTINGS</summary>
+    <div class="settings-panel">
+      <div class="settings-row">
+        <span class="settings-row-label">Rendering</span>
+        <div class="settings-row-control"><button class="quality-toggle" id="quality-toggle">HIGH</button></div>
+      </div>
+      <div class="settings-row">
+        <span class="settings-row-label">Volume</span>
+        <div class="settings-row-control"><input type="range" id="volume-slider" min="0" max="100" value="90" /></div>
+      </div>
+      <div class="settings-row">
+        <span class="settings-row-label">Minimap</span>
+        <div class="settings-row-control"><input type="checkbox" id="minimap-toggle" checked /></div>
+      </div>
+    </div>
   </details>
   <div class="status" id="status"></div>
   <div class="hint">MOVE WITH THE MOUSE · HOLD SHIFT TO BOOST</div>
 </div><div class="screen gone" id="death">
-  <h1>DEV<em>OURED</em></h1>
-  <div class="killer">BY <b id="d-killer">—</b></div>
+  <h1 id="death-title">ECLIPSE<em>D</em></h1>
+  <div class="killer" id="death-killer-line">OBSCURED BY <b id="d-killer">—</b></div>
   <div class="divider"></div>
   <div class="stats">
     <div class="stat"><div class="v" id="d-mass">0</div><div class="l">PEAK MASS</div></div>
     <div class="stat"><div class="v" id="d-rank">—</div><div class="l">BEST RANK</div></div>
-    <div class="stat"><div class="v" id="d-time">0:00</div><div class="l">SURVIVED</div></div>
-    <div class="stat"><div class="v" id="d-eaten">0</div><div class="l">ABSORBED</div></div>
+    <div class="stat"><div class="v" id="d-time">0:00</div><div class="l">OBSERVED</div></div>
+    <div class="stat"><div class="v" id="d-eaten">0</div><div class="l">LOGGED</div></div>
   </div>
   <div class="divider"></div>
   <div class="run-reward" id="run-reward"></div>
   <div class="plinko-section" id="plinko-section" hidden>
-    <div class="plinko-title">BONUS ROUND — CATCH THE MULTIPLIER</div>
+    <div class="plinko-title">SALVAGE DRAW — CATCH THE MULTIPLIER</div>
     <canvas class="plinko-canvas" id="plinko-canvas" width="560" height="400"></canvas>
     <div class="plinko-status" id="plinko-status"></div>
     <div class="row">
@@ -543,7 +765,7 @@
       <button id="plinko-skip">TAKE 1x</button>
     </div>
   </div>
-  <button id="plinko-return" hidden>RETURN TO MENU</button>
+  <button id="plinko-return" hidden>RETURN TO STATION</button>
   <button id="respawn">COLLAPSE AGAIN</button>
   <div class="hint">OR PRESS SPACE</div>
 </div>
@@ -617,7 +839,21 @@ const CFG = {
     VIEW_R_MUL: 30
   },
 
+  POWERUP: {
+    SPAWN_EVERY: 14,
+    LIFETIME: 22,
+    RADIUS: 15,
+    PICKUP_PAD: 20,
+    SPEED_MUL: 1.6,
+    SPEED_DUR: 6,
+    MAGNET_MUL: 2.1,
+    MAGNET_DUR: 7,
+    SHIELD_DUR: 5
+  },
+
   CAMERA: { VIEW_REF: 620, VIEW_PAD: 46, MIN_ZOOM: 0.16, MAX_ZOOM: 1.5, LERP: 2.4 },
+
+  MATCH: { TIMED_DURATION: 180 },
 
   RENDER: {
     TRAIL_FADE: 0.30,
@@ -643,6 +879,27 @@ const randi = (a, b) => Math.floor(rand(a, b + 1));
 const pick  = arr => arr[(Math.random() * arr.length) | 0];
 const chance = p => Math.random() < p;
 
+// swap Math.random for a seeded one during init() so the daily challenge gets the same world
+function mulberry32(seed) {
+  let s = seed >>> 0;
+  return function () {
+    s = (s + 0x6D2B79F5) | 0;
+    let t = Math.imul(s ^ (s >>> 15), 1 | s);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function dailySeed(dateKey) {
+  let h = 2166136261;
+  for (let i = 0; i < dateKey.length; i++) { h ^= dateKey.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return h >>> 0;
+}
+function withSeededRandom(seed, fn) {
+  const orig = Math.random;
+  Math.random = mulberry32(seed);
+  try { fn(); } finally { Math.random = orig; }
+}
+
 
 const radiusFromMass = m => Math.sqrt(m / Math.PI);
 const massFromRadius = r => Math.PI * r * r;
@@ -658,22 +915,26 @@ const nextId = () => __id++;
 
 const r2 = v => Math.round(v * 100) / 100;
 const r3 = v => Math.round(v * 1000) / 1000;
-const FOOD_TYPES = { dust: 0, asteroid: 1, planet: 2, rogue: 3 };
-const FOOD_TYPES_REV = ["dust", "asteroid", "planet", "rogue"];
+const FOOD_TYPES = { dust: 0, asteroid: 1, planet: 2, rogue: 3, power: 4 };
+const FOOD_TYPES_REV = ["dust", "asteroid", "planet", "rogue", "power"];
+const POWER_KINDS = ["speed", "magnet", "shield"];
 
 function encodePlayer(p) {
   return [p.id, Math.round(p.x), Math.round(p.y), Math.round(p.r), r2(p.stretch), r3(p.stretchAng),
-          p.color, p.name, p.isBot ? 1 : 0, r2(p.shield), r2(p.eatFlash), r3(p.diskAngle), r3(p.pulse)];
+          p.color, p.name, p.isBot ? 1 : 0, r2(p.shield), r2(p.eatFlash), r3(p.diskAngle), r3(p.pulse),
+          r2(p.speedT || 0), r2(p.magnetT || 0), p.team == null ? -1 : p.team];
 }
 function decodePlayer(a) {
   return { id: a[0], kind: "player", x: a[1], y: a[2], r: a[3], stretch: a[4], stretchAng: a[5],
            color: a[6], name: a[7], isBot: !!a[8], shield: a[9], eatFlash: a[10],
-           diskAngle: a[11], pulse: a[12], mass: massFromRadius(a[3]) };
+           diskAngle: a[11], pulse: a[12], speedT: a[13] || 0, magnetT: a[14] || 0,
+           team: a[15] == null || a[15] === -1 ? null : a[15], mass: massFromRadius(a[3]) };
 }
 function encodeFood(f) {
   if (f.type === "dust")     return [f.id, 0, Math.round(f.x), Math.round(f.y), Math.round(f.r), r2(f.stretch), r3(f.stretchAng), f.tint];
   if (f.type === "asteroid") return [f.id, 1, Math.round(f.x), Math.round(f.y), Math.round(f.r), r2(f.stretch), r3(f.stretchAng), f.tint, r3(f.angle), f.lumps];
   if (f.type === "rogue")    return [f.id, 3, Math.round(f.x), Math.round(f.y), Math.round(f.r), r2(f.stretch), r3(f.stretchAng), f.tint, f.name];
+  if (f.type === "power")    return [f.id, 4, Math.round(f.x), Math.round(f.y), Math.round(f.r), r2(f.stretch), r3(f.stretchAng), f.tint, f.powerKind];
   return [f.id, 2, Math.round(f.x), Math.round(f.y), Math.round(f.r), r2(f.stretch), r3(f.stretchAng), f.tint, r3(f.angle), f.hasRing ? 1 : 0, r3(f.ringTilt), f.pal];
 }
 function decodeFood(a) {
@@ -681,6 +942,7 @@ function decodeFood(a) {
   if (kind === "dust")     return { id: a[0], kind, x: a[2], y: a[3], r: a[4], stretch: a[5], stretchAng: a[6], tint: a[7] };
   if (kind === "asteroid") return { id: a[0], kind, x: a[2], y: a[3], r: a[4], stretch: a[5], stretchAng: a[6], tint: a[7], angle: a[8], lumps: a[9] };
   if (kind === "rogue")    return { id: a[0], kind, x: a[2], y: a[3], r: a[4], stretch: a[5], stretchAng: a[6], tint: a[7], name: a[8] };
+  if (kind === "power")    return { id: a[0], kind, x: a[2], y: a[3], r: a[4], stretch: a[5], stretchAng: a[6], tint: a[7], powerKind: a[8] };
   return { id: a[0], kind, x: a[2], y: a[3], r: a[4], stretch: a[5], stretchAng: a[6], tint: a[7], angle: a[8], hasRing: !!a[9], ringTilt: a[10], pal: a[11] };
 }
 
@@ -784,6 +1046,18 @@ class Rogue extends Entity {
 }
 
 
+class PowerUp extends Entity {
+  constructor(x, y, powerKind) {
+    super(x, y, massFromRadius(CFG.POWERUP.RADIUS));
+    this.type = "power";
+    this.powerKind = powerKind;
+    this.ttl = CFG.POWERUP.LIFETIME;
+    this.vx = 0; this.vy = 0;
+    this.tint = powerKind === "speed" ? "#5ef0d8" : powerKind === "magnet" ? "#c98fff" : "#9fd8ff";
+  }
+}
+
+
 class Player extends Entity {
   constructor(x, y, name, color) {
     super(x, y, CFG.PLAYER.START_MASS);
@@ -799,6 +1073,9 @@ class Player extends Entity {
     this.eatFlash = 0;
     this.shield = 0;
     this.trail = [];
+    this.speedT = 0;
+    this.magnetT = 0;
+    this.team = null;
 
     this.absorbed = 0;
     this.rivalsEaten = 0;
@@ -813,7 +1090,10 @@ class Player extends Entity {
     const s = CFG.PLAYER.BASE_SPEED * Math.pow(20 / (20 + this.r), CFG.PLAYER.SPEED_FALLOFF);
     return Math.max(CFG.PLAYER.MIN_SPEED, s);
   }
-  get influence() { return this.r * CFG.PHYSICS.INFLUENCE_MUL + CFG.PHYSICS.INFLUENCE_BASE; }
+  get influence() {
+    const base = this.r * CFG.PHYSICS.INFLUENCE_MUL + CFG.PHYSICS.INFLUENCE_BASE;
+    return this.magnetT > 0 ? base * CFG.POWERUP.MAGNET_MUL : base;
+  }
 
   step(dt, game) {
     const world = game.world;
@@ -823,6 +1103,8 @@ class Player extends Entity {
     const boosting = this.boost && this.mass > CFG.BOOST.MIN_MASS;
     let sp = this.maxSpeed;
     if (boosting) sp *= CFG.BOOST.SPEED_MUL;
+    if (this.speedT > 0) { sp *= CFG.POWERUP.SPEED_MUL; this.speedT = Math.max(0, this.speedT - dt); }
+    if (this.magnetT > 0) this.magnetT = Math.max(0, this.magnetT - dt);
     const desiredVX = (dx / dist) * sp * ease;
     const desiredVY = (dy / dist) * sp * ease;
     const k = CFG.PLAYER.ACCEL_LERP * (24 / (24 + this.r * 0.30));
@@ -884,6 +1166,8 @@ class Player extends Entity {
     this.bestRank = 99;
     this.shield = CFG.PLAYER.SPAWN_SHIELD;
     this.eatFlash = 0;
+    this.speedT = 0;
+    this.magnetT = 0;
     this.boost = false;
     this.boostTimer = 0;
   }
@@ -1168,6 +1452,10 @@ class Game {
     this.deathCam = null;
     this.rogueTimer = 0;
     this.lastRogueAt = -999;
+    this.powerupTimer = CFG.POWERUP.SPAWN_EVERY * 0.5;
+    this.matchMode = "classic";
+    this.matchEndAt = null;
+    this.dailyKey = null;
 
 
     this.gridCell = 400;
@@ -1195,6 +1483,12 @@ class Game {
     this.rebuildGrid();
   }
 
+  // only the layout is seeded, everything after is normal random play
+  initDaily(dateKey) {
+    this.dailyKey = dateKey;
+    withSeededRandom(dailySeed(dateKey), () => this.init());
+  }
+
 
   clearEntities() {
     this.food.length = 0;
@@ -1210,6 +1504,8 @@ class Game {
     this.state = "menu";
     this.rogueTimer = 0;
     this.lastRogueAt = -999;
+    this.powerupTimer = CFG.POWERUP.SPAWN_EVERY * 0.5;
+    this.dailyKey = null;
   }
 
   spawnBot(used) {
@@ -1252,6 +1548,7 @@ class Game {
     this.deathCam = killer && !killer.dead ? killer : null;
     this.deathInfo = {
       killer: killer ? killer.name : "THE VOID",
+      matchEnd: false, won: false,
       peakMass: me.peakMass,
       rank: me.bestRank,
       time: this.time - me.spawnTime,
@@ -1259,6 +1556,44 @@ class Game {
       rivalsEaten: me.rivalsEaten
     };
     this.events.push({ type: "death", hole: me, killer });
+  }
+
+  // timed match ran out, or you're the last one alive in elimination
+  endMatchFor(player, rankOverride) {
+    if (player.dead) return;
+    // pass rankOverride when ending several players at once, ranks have to be
+    // grabbed before anyone gets marked dead or they throw each other off
+    const rank = rankOverride != null ? rankOverride : this.rankOf(player);
+    player.bestRank = Math.min(player.bestRank, rank);
+    player.dead = true;
+    const won = rank === 1;
+    this.events.push({ type: "matchend", hole: player, rank: player.bestRank, won });
+    if (player === this.local) {
+      this.state = "dead";
+      this.deathCam = null;
+      this.deathInfo = {
+        killer: null, matchEnd: true, won,
+        peakMass: player.peakMass,
+        rank: player.bestRank,
+        time: this.time - player.spawnTime,
+        absorbed: player.absorbed,
+        rivalsEaten: player.rivalsEaten
+      };
+    }
+  }
+
+  checkMatchEnd() {
+    if (this.matchMode === "timed") {
+      if (this.matchEndAt != null && this.time >= this.matchEndAt) {
+        const survivors = this.players.filter(p => !p.dead);
+        const ranks = new Map(survivors.map(p => [p, this.rankOf(p)]));
+        for (const p of survivors) this.endMatchFor(p, ranks.get(p));
+        this.matchEndAt = null;
+      }
+    } else if (this.matchMode === "elimination") {
+      const alive = this.players.filter(p => !p.dead);
+      if (alive.length === 1) this.endMatchFor(alive[0]);
+    }
   }
 
   step(dt) {
@@ -1285,12 +1620,17 @@ class Game {
 
     this.buildSpatial();
     this.resolveEating();
+    this.resolvePowerups();
     for (const p of this.particles) p.step(dt);
 
     this.rogueTimer -= dt;
     if (this.rogueTimer <= 0) { this.rogueTimer = CFG.ROGUE.CHECK_EVERY; this.maybeSpawnRogue(); }
     this.stepRogues(dt);
 
+    this.powerupTimer -= dt;
+    if (this.powerupTimer <= 0) { this.powerupTimer = CFG.POWERUP.SPAWN_EVERY * rand(0.8, 1.3); this.spawnPowerup(); }
+
+    this.checkMatchEnd();
     this.updateRanks();
     this.compact();
     this.repopulate();
@@ -1431,7 +1771,8 @@ class Game {
 
       const tryEat = (B) => {
         if (B === H || B.dead) return;
-        if (B.type === "rogue") return;
+        if (B.type === "rogue" || B.type === "power") return;
+        if (B.type === "player" && H.team != null && B.team != null && H.team === B.team) return;
         if (B.shield > 0) return;
         if (H.mass < B.mass * EAT_RATIO) return;
         const d = Math.hypot(B.x - H.x, B.y - H.y);
@@ -1452,6 +1793,28 @@ class Game {
 
       this.queryCircle(H.x, H.y, H.r * 1.6, tryEat);
     }
+  }
+
+  resolvePowerups() {
+    for (const H of this.players) {
+      if (H.dead) continue;
+      const pad = H.r + CFG.POWERUP.RADIUS + CFG.POWERUP.PICKUP_PAD;
+      this.queryCircle(H.x, H.y, pad, (e) => {
+        if (e.type !== "power" || e.dead) return;
+        const d = Math.hypot(e.x - H.x, e.y - H.y);
+        if (d > H.r + CFG.POWERUP.RADIUS) return;
+        e.dead = true;
+        if (e.powerKind === "speed") H.speedT = CFG.POWERUP.SPEED_DUR;
+        else if (e.powerKind === "magnet") H.magnetT = CFG.POWERUP.MAGNET_DUR;
+        else if (e.powerKind === "shield") H.shield = Math.max(H.shield, CFG.POWERUP.SHIELD_DUR);
+        this.events.push({ type: "power", kind: e.powerKind, hole: H, x: e.x, y: e.y });
+      });
+    }
+  }
+
+  spawnPowerup() {
+    const x = rand(300, this.world.w - 300), y = rand(300, this.world.h - 300);
+    this.food.push(new PowerUp(x, y, pick(POWER_KINDS)));
   }
 
   spawnAbsorption(victim, hole) {
@@ -1553,17 +1916,19 @@ class Game {
     while (counts.asteroid < CFG.COUNTS.asteroids) { const p = away(); this.food.push(new Asteroid(p.x, p.y)); counts.asteroid++; }
     while (counts.planet < CFG.COUNTS.planets)     { const p = away(); this.food.push(new Planet(p.x, p.y)); counts.planet++; }
 
-    const wanted = CFG.COUNTS.bots + (this.state === "playing" ? 1 : 0);
-    const used = new Set(this.players.map(p => p.name));
-    let guard = 0;
-    while (this.players.length < wanted && guard++ < 4) this.spawnBot(used);
+    if (this.matchMode !== "elimination") {
+      const wanted = CFG.COUNTS.bots + (this.state === "playing" ? 1 : 0);
+      const used = new Set(this.players.map(p => p.name));
+      let guard = 0;
+      while (this.players.length < wanted && guard++ < 4) this.spawnBot(used);
+    }
   }
 }
 
 return {
-  CFG, Game, Player, Rogue, Dust, Asteroid, Planet, Particle,
+  CFG, Game, Player, Rogue, Dust, Asteroid, Planet, Particle, PowerUp,
   HumanlikeController, RemoteIntentController,
-  encodePlayer, decodePlayer, encodeFood, decodeFood, FOOD_TYPES, FOOD_TYPES_REV,
+  encodePlayer, decodePlayer, encodeFood, decodeFood, FOOD_TYPES, FOOD_TYPES_REV, POWER_KINDS,
   nextId, clamp, lerp, damp, rand, randi, pick, chance,
   radiusFromMass, massFromRadius, fmt, mmss, TAU, HANDLES, HUES
 };
@@ -1903,25 +2268,25 @@ class Plinko {
   draw() {
     const ctx = this.ctx, W = this.W, H = this.H;
     ctx.clearRect(0, 0, W, H);
-    ctx.fillStyle = "rgba(4,10,18,0.55)";
+    ctx.fillStyle = "rgba(16,13,7,0.6)";
     ctx.fillRect(0, 0, W, H);
 
 
     for (let i = 0; i < this.SLOTS.length; i++) {
       const x = i * this.slotW;
       const hot = this.landed && i === this.landedIdx;
-      ctx.fillStyle = hot ? "rgba(120,222,255,0.55)" : "rgba(80,120,180,0.28)";
+      ctx.fillStyle = hot ? "rgba(200,139,63,0.6)" : "rgba(200,139,63,0.14)";
       ctx.fillRect(x + 2, this.floorY, this.slotW - 4, H - this.floorY);
-      ctx.strokeStyle = "rgba(160,200,255,0.5)";
+      ctx.strokeStyle = "rgba(168,152,119,0.5)";
       ctx.strokeRect(x + 2, this.floorY, this.slotW - 4, H - this.floorY);
-      ctx.fillStyle = hot ? "#ffffff" : "#a8d0f0";
+      ctx.fillStyle = hot ? "#ece3c9" : "#a89877";
       ctx.font = "bold 15px monospace";
       ctx.textAlign = "center";
       ctx.fillText(this.slotLabel(this.SLOTS[i]), x + this.slotW / 2, this.floorY + 28);
     }
 
 
-    ctx.fillStyle = "rgba(170,200,240,0.75)";
+    ctx.fillStyle = "rgba(236,227,201,0.7)";
     for (const p of this.pegs) {
       ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.fill();
     }
@@ -1930,8 +2295,8 @@ class Plinko {
     if (this.ball) {
       const b = this.ball;
       ctx.save();
-      ctx.shadowBlur = 14; ctx.shadowColor = "#7fd0ff";
-      ctx.fillStyle = "#eaf6ff";
+      ctx.shadowBlur = 14; ctx.shadowColor = "#c88b3f";
+      ctx.fillStyle = "#ece3c9";
       ctx.beginPath(); ctx.arc(b.x, b.y, this.ballR, 0, Math.PI * 2); ctx.fill();
       ctx.restore();
     }
@@ -1947,6 +2312,10 @@ if (typeof module !== "undefined" && module.exports) module.exports = Plinko;
 
 let PROG = null;
 let PAUSED = false;
+let LOW_QUALITY = false;
+const TEAM_NAMES = ["RED", "BLUE"];
+const TEAM_TAGS = ["[R]", "[B]"];
+const TEAM_COLORS = ["#d9605a", "#5a8fd9"];
 
 
 class GameAudio {
@@ -1955,6 +2324,7 @@ class GameAudio {
     this.enabled = true;
     this.ready = false;
     this.lastAbsorb = 0;
+    this.volume = 0.9;
   }
 
 
@@ -1966,7 +2336,7 @@ class GameAudio {
     const c = this.ctx;
 
     this.master = c.createGain();
-    this.master.gain.value = 0.9;
+    this.master.gain.value = this.enabled ? this.volume : 0;
     this.master.connect(c.destination);
 
 
@@ -1992,7 +2362,12 @@ class GameAudio {
 
   setEnabled(v) {
     this.enabled = v;
-    if (this.ready) this.master.gain.setTargetAtTime(v ? 0.9 : 0, this.t, 0.05);
+    if (this.ready) this.master.gain.setTargetAtTime(v ? this.volume : 0, this.t, 0.05);
+  }
+
+  setVolume(v) {
+    this.volume = clamp(v, 0, 1);
+    if (this.ready && this.enabled) this.master.gain.setTargetAtTime(this.volume, this.t, 0.05);
   }
 
 
@@ -2167,6 +2542,24 @@ class GameAudio {
     o.connect(g); g.connect(this.bus);
     o.start(now); o.stop(now + 0.1);
   }
+
+  power(kind) {
+    if (!this.on) return;
+    const c = this.ctx, now = this.t;
+    const base = kind === "speed" ? 520 : kind === "magnet" ? 340 : 420;
+    [1, 1.5, 2].forEach((mul, i) => {
+      const o = c.createOscillator();
+      o.type = "triangle";
+      o.frequency.setValueAtTime(base * mul, now + i * 0.05);
+      o.frequency.exponentialRampToValueAtTime(base * mul * 1.4, now + i * 0.05 + 0.12);
+      const g = c.createGain();
+      g.gain.setValueAtTime(0.0001, now + i * 0.05);
+      g.gain.exponentialRampToValueAtTime(0.1, now + i * 0.05 + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, now + i * 0.05 + 0.22);
+      o.connect(g); g.connect(this.bus);
+      o.start(now + i * 0.05); o.stop(now + i * 0.05 + 0.25);
+    });
+  }
 }
 
 
@@ -2293,6 +2686,8 @@ class Renderer {
     this.ctx = canvas.getContext("2d", { alpha: false });
     this.camera = camera;
     this.dpr = 1;
+    this.shadowScale = 1;
+    this.showMinimap = true;
     this.stars = [];
     this.buildStarfield();
     this.resize();
@@ -2300,7 +2695,7 @@ class Renderer {
   }
 
   resize() {
-    this.dpr = Math.min(window.devicePixelRatio || 1, 2);
+    this.dpr = Math.min(window.devicePixelRatio || 1, LOW_QUALITY ? 1 : 2);
     let w = window.innerWidth, h = window.innerHeight;
     if (!w || !h) {                       // not laid out yet — use the document box
       w = document.documentElement.clientWidth;
@@ -2362,6 +2757,7 @@ class Renderer {
       if (e.type === "asteroid") this.drawAsteroid(ctx, e);
       else if (e.type === "planet") this.drawPlanet(ctx, e);
       else if (e.type === "rogue") this.drawRogue(ctx, e, game.time);
+      else if (e.type === "power") this.drawPowerUp(ctx, e, game.time);
     }
 
     ctx.globalCompositeOperation = "lighter";
@@ -2373,7 +2769,7 @@ class Renderer {
 
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
     this.drawVignette(ctx, cam.vw, cam.vh);
-    this.drawMinimap(ctx, game);
+    if (this.showMinimap) this.drawMinimap(ctx, game);
   }
 
 
@@ -2511,6 +2907,57 @@ class Renderer {
     ctx.globalAlpha = 1;
   }
 
+  drawPowerUp(ctx, e, time) {
+    const r = e.r, pulse = 1 + 0.15 * Math.sin(time * 3 + e.id);
+    ctx.save();
+    ctx.globalCompositeOperation = "lighter";
+    const halo = ctx.createRadialGradient(e.x, e.y, r * 0.6, e.x, e.y, r * 2.6);
+    halo.addColorStop(0, this.rgba(e.tint, 0.5));
+    halo.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = halo;
+    ctx.beginPath(); ctx.arc(e.x, e.y, r * 2.6, 0, TAU); ctx.fill();
+    ctx.restore();
+
+    ctx.save();
+    ctx.translate(e.x, e.y);
+    ctx.globalCompositeOperation = "source-over";
+    ctx.fillStyle = "#0d0b06";
+    ctx.beginPath(); ctx.arc(0, 0, r * pulse, 0, TAU); ctx.fill();
+    ctx.strokeStyle = e.tint;
+    ctx.lineWidth = Math.max(1.4, r * 0.16);
+    ctx.beginPath(); ctx.arc(0, 0, r * pulse, 0, TAU); ctx.stroke();
+
+    ctx.lineWidth = Math.max(1.2, r * 0.14);
+    ctx.lineCap = "round"; ctx.lineJoin = "round";
+
+    if (e.powerKind === "speed") {
+      for (let k = -1; k <= 1; k += 2) {
+        ctx.beginPath();
+        ctx.moveTo(-r * 0.32 + k * r * 0.22, -r * 0.42);
+        ctx.lineTo(r * 0.18 + k * r * 0.22, 0);
+        ctx.lineTo(-r * 0.32 + k * r * 0.22, r * 0.42);
+        ctx.stroke();
+      }
+    } else if (e.powerKind === "magnet") {
+      ctx.beginPath();
+      ctx.arc(0, r * 0.05, r * 0.42, Math.PI * 0.05, Math.PI * 0.95, false);
+      ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(-r * 0.42, r * 0.05); ctx.lineTo(-r * 0.42, r * 0.5); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(r * 0.42, r * 0.05); ctx.lineTo(r * 0.42, r * 0.5); ctx.stroke();
+    } else {
+      ctx.beginPath();
+      ctx.moveTo(0, -r * 0.46);
+      ctx.lineTo(r * 0.4, -r * 0.22);
+      ctx.lineTo(r * 0.4, r * 0.14);
+      ctx.quadraticCurveTo(r * 0.4, r * 0.44, 0, r * 0.5);
+      ctx.quadraticCurveTo(-r * 0.4, r * 0.44, -r * 0.4, r * 0.14);
+      ctx.lineTo(-r * 0.4, -r * 0.22);
+      ctx.closePath();
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
   drawRogue(ctx, e, time) {
     const r = e.r, pulse = 1 + 0.12 * Math.sin(time * 2.6 + e.id);
     ctx.save();
@@ -2626,10 +3073,10 @@ class Renderer {
     disk.addColorStop(0.70, "rgba(120,70,220,0.16)");
     disk.addColorStop(1.00, "rgba(0,0,0,0)");
     ctx.fillStyle = disk;
-    ctx.shadowBlur = clamp(r * 1.1, 10, 26); ctx.shadowColor = tint;
+    ctx.shadowBlur = clamp(r * 1.1, 10, 26) * this.shadowScale; ctx.shadowColor = tint;
     ctx.beginPath(); ctx.arc(0, 0, diskR, 0, TAU); ctx.fill();
 
-    ctx.shadowBlur = clamp(r * 0.6, 6, 22);
+    ctx.shadowBlur = clamp(r * 0.6, 6, 22) * this.shadowScale;
     for (let k = 0; k < 2; k++) {
       const a0 = k * Math.PI + Math.sin(time * 0.7 + k) * 0.25;
       ctx.globalAlpha = 0.42;
@@ -2645,7 +3092,7 @@ class Renderer {
     ctx.globalCompositeOperation = "lighter";
     ctx.strokeStyle = ringColor; ctx.globalAlpha = 0.85;
     ctx.lineWidth = Math.max(0.8, r * 0.055);
-    ctx.shadowBlur = clamp(r * 0.8, 8, 26); ctx.shadowColor = tint;
+    ctx.shadowBlur = clamp(r * 0.8, 8, 26) * this.shadowScale; ctx.shadowColor = tint;
     ctx.beginPath(); ctx.arc(p.x, p.y, r * 1.045, 0, TAU); ctx.stroke();
     ctx.restore();
 
@@ -2703,15 +3150,30 @@ class Renderer {
       ctx.restore();
     }
 
+    if (p.speedT > 0 || p.magnetT > 0) {
+      ctx.save();
+      ctx.globalCompositeOperation = "lighter";
+      const buffColor = p.speedT > 0 ? "#5ef0d8" : "#c98fff";
+      ctx.globalAlpha = 0.5 + 0.25 * Math.sin(time * 7);
+      ctx.strokeStyle = buffColor;
+      ctx.lineWidth = Math.max(1, r * 0.07);
+      ctx.setLineDash([r * 0.3, r * 0.22]);
+      ctx.lineDashOffset = -time * r * (p.speedT > 0 ? 3.2 : 0.9);
+      ctx.shadowBlur = 12; ctx.shadowColor = buffColor;
+      ctx.beginPath(); ctx.arc(p.x, p.y, r * 2.3, 0, TAU); ctx.stroke();
+      ctx.restore();
+    }
+
 
     ctx.save();
     const fs = Math.max(11 / this.camera.zoom, r * 0.42);
     ctx.font = "500 " + fs.toFixed(1) + "px ui-monospace, Menlo, monospace";
     ctx.textAlign = "center"; ctx.textBaseline = "middle";
     ctx.globalAlpha = p.isLocal ? 0.95 : 0.6;
-    ctx.fillStyle = p.isLocal ? "#ffffff" : "#cfe4ff";
+    ctx.fillStyle = p.team != null ? TEAM_COLORS[p.team] : (p.isLocal ? "#ffffff" : "#cfe4ff");
     ctx.shadowBlur = 12; ctx.shadowColor = "#000";
-    ctx.fillText(p.name, p.x, p.y + r + fs * 1.25);
+    const label = p.team != null ? TEAM_TAGS[p.team] + " " + p.name : p.name;
+    ctx.fillText(label, p.x, p.y + r + fs * 1.25);
     ctx.restore();
     ctx.globalAlpha = 1; ctx.shadowBlur = 0;
   }
@@ -2773,7 +3235,7 @@ class HUD {
     this.mass = $("ui-mass"); this.x = $("ui-x"); this.y = $("ui-y");
     this.fps = $("ui-fps"); this.ent = $("ui-ent");
     this.time = $("ui-time"); this.eaten = $("ui-eaten");
-    this.board = $("ui-board"); this.feed = $("feed");
+    this.board = $("ui-board"); this.feed = $("feed"); this.buffs = $("ui-buffs"); this.match = $("ui-match");
     this.acc = 0; this.lastFeed = 0;
   }
 
@@ -2792,10 +3254,34 @@ class HUD {
     this.time.textContent = live ? mmss(game.time - me.spawnTime) : "0:00";
     this.eaten.textContent = me ? me.absorbed : 0;
 
+    let buffsHtml = "";
+    if (live && me.speedT > 0) buffsHtml += '<span class="buff-speed">SPEED ' + Math.ceil(me.speedT) + 's</span>';
+    if (live && me.magnetT > 0) buffsHtml += '<span class="buff-magnet">MAGNET ' + Math.ceil(me.magnetT) + 's</span>';
+    this.buffs.innerHTML = buffsHtml;
+
+    let matchText = "";
+    if (live && game.matchMode === "timed" && game.matchEndAt != null) {
+      matchText = "MATCH " + mmss(Math.max(0, game.matchEndAt - game.time));
+    } else if (live && game.matchMode === "elimination") {
+      matchText = "LAST STATION STANDING — " + (game.players.filter(p => !p.dead).length) + " LEFT";
+    }
+    if (live && game.dailyKey) matchText = "DAILY " + game.dailyKey + (matchText ? " · " + matchText : "");
+    this.match.textContent = matchText;
+
     const top = (game.ranked || game.players).slice(0, 7);
-    this.board.innerHTML = top.map((p, i) =>
-      '<div class="' + (p.isLocal ? "me" : "") + '">' + (i + 1) + ". " + esc(p.name) + " &nbsp;" + fmt(p.mass) + "</div>"
-    ).join("");
+    let boardHtml = "";
+    const teamed = game.players.filter(p => p.team != null && !p.dead);
+    if (teamed.length) {
+      const totals = [0, 0];
+      for (const p of teamed) totals[p.team] += p.mass;
+      boardHtml += '<div class="team-score"><span class="team-red">RED ' + fmt(totals[0]) +
+        '</span> vs <span class="team-blue">BLUE ' + fmt(totals[1]) + '</span></div>';
+    }
+    boardHtml += top.map((p, i) => {
+      const tag = p.team != null ? '<span style="color:' + TEAM_COLORS[p.team] + '">' + TEAM_TAGS[p.team] + '</span> ' : "";
+      return '<div class="' + (p.isLocal ? "me" : "") + '">' + (i + 1) + ". " + tag + esc(p.name) + " &nbsp;" + fmt(p.mass) + "</div>";
+    }).join("");
+    this.board.innerHTML = boardHtml;
 
     if (game.feed.length !== this.lastFeed) {
       this.lastFeed = game.feed.length;
@@ -2838,7 +3324,7 @@ class NetworkController {
     this.closed = false;
     this.ws = transport;
     transport.onopen = () => {
-      try { transport.send(JSON.stringify({ t: "join", room: roomCode || null, name: this.name })); } catch (e) {}
+      try { transport.send(JSON.stringify({ t: "join", room: roomCode || null, name: this.name, color: this.color })); } catch (e) {}
     };
     transport.onmessage = e => {
       let msg;
@@ -2862,6 +3348,8 @@ class NetworkController {
       this.current.clear();
       this.buffer.length = 0;
       this.game.state = "playing";
+      this.game.matchMode = msg.matchMode || "classic";
+      this.game.matchEndAt = msg.matchEndAt != null ? msg.matchEndAt : null;
       if (this.onjoined) this.onjoined();
     } else if (msg.t === "s") {
       const now = performance.now();
@@ -2894,7 +3382,10 @@ class NetworkController {
     } else if (msg.kind === "death") {
       this.dead = true;
       g.state = "dead";
-      g.deathInfo = { killer: msg.killer, peakMass: msg.peakMass, rank: msg.rank, time: msg.time, absorbed: msg.absorbed, rivalsEaten: msg.rivalsEaten || 0 };
+      g.deathInfo = {
+        killer: msg.killer, matchEnd: !!msg.matchEnd, won: !!msg.won,
+        peakMass: msg.peakMass, rank: msg.rank, time: msg.time, absorbed: msg.absorbed, rivalsEaten: msg.rivalsEaten || 0
+      };
       g.deathCam = msg.killerId ? (this.entities.get(msg.killerId) || null) : null;
       g.events.push({ type: "death", hole: this.entities.get(this.myId) || null, killer: g.deathCam });
     } else if (msg.kind === "spawn") {
@@ -2904,6 +3395,8 @@ class NetworkController {
       g.deathInfo = null;
       g.deathCam = null;
       g.events.push({ type: "spawn", hole: this.entities.get(this.myId) || null });
+    } else if (msg.kind === "power") {
+      g.events.push({ type: "power", kind: msg.powerKind, hole: this.entities.get(this.myId) || null });
     }
   }
 
@@ -3029,6 +3522,7 @@ function makeMirrorEntity(s) {
     rg.name = s.name || "VOID WALKER";
     return rg;
   }
+  if (s.kind === "power") return new PowerUp(s.x, s.y, s.powerKind || "speed");
   return new Planet(s.x, s.y);
 }
 
@@ -3046,8 +3540,12 @@ function writeMirrorState(e, s) {
     e.pulse = s.pulse == null ? 0 : s.pulse;
     e.eatFlash = s.eatFlash == null ? 0 : s.eatFlash;
     e.shield = s.shield == null ? 0 : s.shield;
+    e.speedT = s.speedT == null ? 0 : s.speedT;
+    e.magnetT = s.magnetT == null ? 0 : s.magnetT;
+    e.team = s.team == null ? null : s.team;
     e.isBot = !!s.isBot;
   }
+  if (s.powerKind !== undefined) e.powerKind = s.powerKind;
   if (s.hasRing !== undefined) e.hasRing = s.hasRing;
   if (s.ringTilt !== undefined) e.ringTilt = s.ringTilt;
   if (s.pal !== undefined) e.pal = s.pal;
@@ -3131,7 +3629,7 @@ class PeerHost {
       let msg;
       try { msg = typeof data === "string" ? JSON.parse(data) : data; } catch (e) { return; }
       if (msg.t === "join") {
-        this.addMember(conn, msg.name);
+        this.addMember(conn, msg.name, msg.color);
       } else if (msg.t === "intent") {
         const m = this.members.get(conn);
         if (m && !m.dead && m.player.controller) {
@@ -3146,7 +3644,7 @@ class PeerHost {
     conn.on("close", () => this.removeMember(conn));
   }
 
-  addMember(conn, rawName) {
+  addMember(conn, rawName, rawColor) {
     const name = sanitizePeerName(rawName);
     if (this.game.players.length >= MAX_PLAYERS) {
       this.send(conn, { t: "err", code: "full" });
@@ -3157,14 +3655,24 @@ class PeerHost {
     let unique = name, n = 2;
     while (taken.has(unique)) unique = name + n++;
 
+    let color = /^#[0-9a-fA-F]{6}$/.test(rawColor || "") ? rawColor : HUES[(this.members.size + 1) % HUES.length];
     const spot = this.game.safeSpawn(null);
-    const player = new Player(spot.x, spot.y, unique, HUES[(this.members.size + 1) % HUES.length]);
+    const player = new Player(spot.x, spot.y, unique, color);
+    if (this.teamsEnabled) {
+      const team = (this.humanCount || 1) % 2;
+      this.humanCount = (this.humanCount || 1) + 1;
+      player.team = team;
+      player.color = TEAM_COLORS[team];
+    }
     player.controller = new RemoteIntentController(spot.x, spot.y);
     player.spawnTime = this.game.time;
     player.shield = CFG.PLAYER.SPAWN_SHIELD;
     this.game.players.push(player);
     this.members.set(conn, { player, name: unique, dead: false, last: { p: new Map(), f: new Map() } });
-    this.send(conn, { t: "joined", id: player.id, room: this.roomCode, spawnTime: player.spawnTime });
+    this.send(conn, {
+      t: "joined", id: player.id, room: this.roomCode, spawnTime: player.spawnTime,
+      matchMode: this.game.matchMode, matchEndAt: this.game.matchEndAt
+    });
     this.game.events.push({ type: "spawn", hole: player });
   }
 
@@ -3176,6 +3684,7 @@ class PeerHost {
   }
 
   respawn(conn) {
+    if (this.game.matchMode === "elimination") return;
     const m = this.members.get(conn);
     if (!m || !m.dead) return;
     const spot = this.game.safeSpawn(m.player);
@@ -3258,6 +3767,20 @@ class PeerHost {
         for (const [conn, m] of this.members) {
           if (m.player === ev.hole) this.send(conn, { t: "e", kind: "spawn", spawnTime: ev.hole.spawnTime });
         }
+      } else if (ev.type === "power") {
+        for (const [conn, m] of this.members) {
+          if (m.player === ev.hole) this.send(conn, { t: "e", kind: "power", powerKind: ev.kind });
+        }
+      } else if (ev.type === "matchend") {
+        for (const [conn, m] of this.members) {
+          if (m.player !== ev.hole) continue;
+          m.dead = true;
+          this.send(conn, {
+            t: "e", kind: "death", killer: null, matchEnd: true, won: ev.won,
+            rank: ev.hole.bestRank, peakMass: ev.hole.peakMass,
+            time: game.time - ev.hole.spawnTime, absorbed: ev.hole.absorbed, rivalsEaten: ev.hole.rivalsEaten
+          });
+        }
       }
     }
   }
@@ -3300,13 +3823,144 @@ class PeerHost {
         plinkoCanvas = $("plinko-canvas"), plinkoStatusEl = $("plinko-status"),
         plinkoDropEl = $("plinko-drop"), plinkoSkipEl = $("plinko-skip"),
         plinkoReturnEl = $("plinko-return"), shopEl = $("cosmetics-shop"),
-        pauseEl = $("pause"), resumeEl = $("resume");
+        pauseEl = $("pause"), resumeEl = $("resume"),
+        recordEl = $("station-record"), recordMassEl = $("record-mass"), recordTimeEl = $("record-time"),
+        tintSwatchesEl = $("tint-swatches"), qualityToggleEl = $("quality-toggle"),
+        volumeSliderEl = $("volume-slider"), minimapToggleEl = $("minimap-toggle"),
+        killstreakEl = $("killstreak"), tutorialEl = $("tutorial"), tutorialDismissEl = $("tutorial-dismiss"),
+        teamsToggleEl = $("teams-toggle"), dailyEl = $("daily"), dailyDateEl = $("daily-date");
 
   let net = null;
   let host = null;
   let mode = "solo";
 
   let plinko = null, pendingTokens = 0, plinkoResolved = false;
+
+  // best mass/time already tracked by Progression for quests, just display it
+  function renderRecord() {
+    const bestMass = (PROG.best && PROG.best.peakMass) || 0;
+    const bestTime = (PROG.best && PROG.best.time) || 0;
+    recordEl.hidden = !bestMass && !bestTime;
+    recordMassEl.textContent = fmt(bestMass);
+    recordTimeEl.textContent = mmss(bestTime);
+  }
+  renderRecord();
+
+  // free color picker, separate from the paid disk cosmetics
+  const TINTS = ["#ffb45e", "#c88b3f", "#86a184", "#c65b43", "#7fa7c9", "#d8c9a0"];
+  let myTint = localStorage.getItem("bh_tint") || TINTS[0];
+  if (!TINTS.includes(myTint)) myTint = TINTS[0];
+  function renderTints() {
+    tintSwatchesEl.innerHTML = TINTS.map(c =>
+      '<button type="button" class="tint-swatch' + (c === myTint ? ' active' : '') +
+      '" style="--swatch:' + c + '" data-color="' + c + '" aria-label="Tint ' + c + '"></button>'
+    ).join("");
+  }
+  renderTints();
+  tintSwatchesEl.addEventListener("click", e => {
+    const btn = e.target.closest(".tint-swatch");
+    if (!btn) return;
+    myTint = btn.dataset.color;
+    localStorage.setItem("bh_tint", myTint);
+    renderTints();
+    if (game.local) game.local.color = myTint;
+  });
+
+  function applyQuality(low, persist) {
+    LOW_QUALITY = low;
+    CFG.RENDER.MAX_PARTICLES = low ? 80 : 300;
+    renderer.shadowScale = low ? 0.35 : 1;
+    renderer.dpr = 0;
+    renderer.resize();
+    document.getElementById("grain").style.display = low ? "none" : "";
+    qualityToggleEl.textContent = low ? "LOW" : "HIGH";
+    if (persist) localStorage.setItem("bh_quality", low ? "low" : "high");
+  }
+  applyQuality(localStorage.getItem("bh_quality") === "low", false);
+  qualityToggleEl.addEventListener("click", () => applyQuality(!LOW_QUALITY, true));
+
+  const savedVolume = parseInt(localStorage.getItem("bh_volume"), 10);
+  const initialVolume = isFinite(savedVolume) ? clamp(savedVolume, 0, 100) : 90;
+  volumeSliderEl.value = String(initialVolume);
+  audio.setVolume((initialVolume / 100) * 0.9);
+  volumeSliderEl.addEventListener("input", () => {
+    const v = clamp(parseInt(volumeSliderEl.value, 10) || 0, 0, 100);
+    audio.setVolume((v / 100) * 0.9);
+    localStorage.setItem("bh_volume", String(v));
+  });
+
+  renderer.showMinimap = localStorage.getItem("bh_minimap") !== "off";
+  minimapToggleEl.checked = renderer.showMinimap;
+  minimapToggleEl.addEventListener("change", () => {
+    renderer.showMinimap = minimapToggleEl.checked;
+    localStorage.setItem("bh_minimap", renderer.showMinimap ? "on" : "off");
+  });
+
+  // only steps down to low quality automatically, never back up on its own
+  let lowFpsTimer = 0;
+
+  let killStreak = 0, killStreakTimer = 0;
+  function bumpKillStreak() {
+    killStreak++;
+    killStreakTimer = 2.2;
+    if (killStreak >= 2) {
+      killstreakEl.textContent = "×" + killStreak;
+      killstreakEl.classList.add("show");
+    }
+  }
+  function resetKillStreak() {
+    killStreak = 0;
+    killStreakTimer = 0;
+    killstreakEl.classList.remove("show");
+  }
+
+  function maybeShowTutorial() {
+    if (localStorage.getItem("bh_seen_tutorial")) return;
+    localStorage.setItem("bh_seen_tutorial", "1");
+    tutorialEl.classList.remove("gone");
+    setTimeout(() => tutorialEl.classList.add("gone"), 9000);
+  }
+  tutorialDismissEl.addEventListener("click", () => tutorialEl.classList.add("gone"));
+
+  let matchMode = "classic";
+  const modeRowEl = $("mode-row");
+  modeRowEl.addEventListener("click", e => {
+    const btn = e.target.closest(".mode-btn");
+    if (!btn) return;
+    matchMode = btn.dataset.mode;
+    modeRowEl.querySelectorAll(".mode-btn").forEach(b => b.classList.toggle("active", b === btn));
+  });
+  function armMatch(g) {
+    g.matchMode = matchMode;
+    g.matchEndAt = matchMode === "timed" ? g.time + CFG.MATCH.TIMED_DURATION : null;
+  }
+
+  function todayKey() {
+    const d = new Date();
+    return d.getUTCFullYear() + "-" + String(d.getUTCMonth() + 1).padStart(2, "0") + "-" + String(d.getUTCDate()).padStart(2, "0");
+  }
+  dailyDateEl.textContent = todayKey();
+
+  function startDaily() {
+    audio.unlock();
+    audio.ui();
+    if (host) { host.close(); host = null; }
+    if (net) { net.close(); net = null; }
+    mode = "solo";
+    menuEl.classList.add("gone");
+    deathEl.classList.add("gone");
+    setPaused(false);
+    camera.hard = true;
+    game.clearEntities();
+    game.initDaily(todayKey());
+    armMatch(game);
+    game.spawnLocal(playerName(), localController);
+    game.local.color = myTint;
+    camera.x = game.local.x; camera.y = game.local.y;
+    setStatus("DAILY CHALLENGE — " + todayKey(), false);
+    maybeShowTutorial();
+  }
+  dailyEl.addEventListener("click", startDaily);
 
   function setPaused(v) {
     PAUSED = !!v;
@@ -3353,9 +4007,12 @@ class PeerHost {
     deathEl.classList.add("gone");
     setPaused(false);
     camera.hard = true;
+    if (mode !== "host") armMatch(game);
     game.spawnLocal(playerName(), localController);
+    game.local.color = myTint;
     camera.x = game.local.x; camera.y = game.local.y;
     setStatus("");
+    maybeShowTutorial();
   }
 
 
@@ -3371,15 +4028,19 @@ class PeerHost {
     if (net) { net.close(); net = null; }
     setStatus("CREATING ROOM...", false);
 
+    const teamsOn = teamsToggleEl.checked;
     host = new PeerHost(game, name, code => {
 
       game.clearEntities();
       game.init();
+      armMatch(game);
+      host.teamsEnabled = teamsOn;
       const spot = game.safeSpawn(null);
-      const me = new Player(spot.x, spot.y, name, "#ffb45e");
+      const me = new Player(spot.x, spot.y, name, teamsOn ? TEAM_COLORS[0] : myTint);
       me.isLocal = true;
       me.controller = localController;
       me.spawnTime = game.time;
+      if (teamsOn) { me.team = 0; host.humanCount = 1; }
       game.players.push(me);
       game.local = me;
       game.state = "playing";
@@ -3390,6 +4051,7 @@ class PeerHost {
       camera.hard = true;
       showRoom(code);
       setStatus("");
+      maybeShowTutorial();
     }, code => {
       setStatus(code === "connect" ? "COULD NOT CREATE ROOM — CHECK INTERNET" : "ROOM ERROR", true);
       enterSolo();
@@ -3429,6 +4091,7 @@ class PeerHost {
       conn.on("open", () => {
         if (done) return;
         net = new NetworkController(game, name);
+        net.color = myTint;
         net.onjoined = () => {
           done = true;
           mode = "multi";
@@ -3438,6 +4101,7 @@ class PeerHost {
           camera.hard = true;
           showRoom(net.room);
           setStatus("");
+          maybeShowTutorial();
         };
         net.onerror = c => {
           const text = c === "full" ? "ROOM FULL"
@@ -3459,6 +4123,12 @@ class PeerHost {
 
   function respawnOrRestart() {
     if (pendingTokens > 0 && !plinkoResolved) finishPlinko(1);
+    if (game.matchMode === "elimination") {
+      deathEl.classList.add("gone");
+      enterSolo();
+      menuEl.classList.remove("gone");
+      return;
+    }
     if (mode === "host" && host) startSolo();
     else if (net && net.connected) net.respawn();
     else startSolo();
@@ -3491,7 +4161,7 @@ class PeerHost {
     const id = btn.dataset.id, action = btn.dataset.action;
     if (action === "buy") {
       const r = PROG.buy(id);
-      if (r === "ok") { setStatus("UNLOCKED: " + (PROG.item(id) || {}).name, false); PROG.renderShop(); }
+      if (r === "ok") { setStatus("UNLOCKED: " + (PROG.item(id) || {}).name, false); PROG.renderShop(); PROG.updateTokenUI(); }
       else if (r === "broke") setStatus("NOT ENOUGH TOKENS", true);
     } else if (action === "equip") {
       PROG.equip(id);
@@ -3536,7 +4206,20 @@ class PeerHost {
 
   function showDeath() {
     const d = game.deathInfo;
-    $("d-killer").textContent = d.killer;
+    const titleEl = $("death-title"), killerLineEl = $("death-killer-line"), respawnEl = $("respawn");
+    const elimination = game.matchMode === "elimination";
+
+    if (d.matchEnd) {
+      killerLineEl.style.display = "none";
+      if (elimination) titleEl.innerHTML = d.won ? "LAST<em> STANDING</em>" : "ELIMINAT<em>ED</em>";
+      else titleEl.innerHTML = d.won ? "TOP OF THE<em> FIELD</em>" : "TIME<em>'S UP</em>";
+    } else {
+      killerLineEl.style.display = "";
+      titleEl.innerHTML = "ECLIPSE<em>D</em>";
+      $("d-killer").textContent = d.killer;
+    }
+    respawnEl.textContent = elimination ? "RETURN TO STATION" : "COLLAPSE AGAIN";
+
     $("d-mass").textContent = fmt(d.peakMass);
     $("d-rank").textContent = "#" + (d.rank === 99 ? "—" : d.rank);
     $("d-time").textContent = mmss(d.time);
@@ -3548,6 +4231,8 @@ class PeerHost {
       (result.questRewards > 0 ? "  (+" + Progression.fmt(result.questRewards) + " QUEST BONUS)" : "");
     PROG.updateTokenUI();
     PROG.renderQuests();
+    renderRecord();
+    resetKillStreak();
     pendingTokens = result.runTokens;
     plinkoResolved = false;
     plinkoStatusEl.textContent = "";
@@ -3555,14 +4240,20 @@ class PeerHost {
     if (plinko) plinko.reset();
 
 
-    if (!plinko) {
-      plinko = new Plinko(plinkoCanvas);
-      plinko.onLanded = finishPlinko;
-      plinkoCanvas.addEventListener("click", () => { if (plinko && !plinko.landed) plinko.drop(); });
+    if (elimination) {
+      plinkoDropEl.hidden = true;
+      plinkoSkipEl.hidden = true;
+      plinkoSectionEl.hidden = true;
+    } else {
+      if (!plinko) {
+        plinko = new Plinko(plinkoCanvas);
+        plinko.onLanded = finishPlinko;
+        plinkoCanvas.addEventListener("click", () => { if (plinko && !plinko.landed) plinko.drop(); });
+      }
+      plinkoDropEl.hidden = false;
+      plinkoSkipEl.hidden = false;
+      plinkoSectionEl.hidden = false;
     }
-    plinkoDropEl.hidden = false;
-    plinkoSkipEl.hidden = false;
-    plinkoSectionEl.hidden = false;
 
     deathEl.classList.remove("gone");
   }
@@ -3646,16 +4337,30 @@ class PeerHost {
         audio.absorb(ev.r, d, camera.viewRadius, ev.victim && ev.victim.type === "player");
         if (ev.hole === game.local) camera.kick(clamp(ev.r / 90, 0.04, 0.9));
         if (net) game.spawnAbsorption({ x: ev.x, y: ev.y, r: ev.r, tint: ev.victim.tint }, ev.hole || { vx: 0, vy: 0 });
+        if (ev.hole === game.local && ev.victim && ev.victim.type === "player") bumpKillStreak();
       } else if (ev.type === "death") {
         audio.death();
         camera.kick(1.4);
         camera.hard = false;
         deathDelay = 1.15;
         setPaused(false);
+        resetKillStreak();
       } else if (ev.type === "spawn") {
         audio.spawn();
         camera.hard = true;
         deathEl.classList.add("gone");
+        resetKillStreak();
+      } else if (ev.type === "power") {
+        if (ev.hole === game.local) { audio.power(ev.kind); camera.kick(0.15); }
+      } else if (ev.type === "matchend") {
+        if (ev.hole === game.local) {
+          audio.death();
+          camera.kick(1.4);
+          camera.hard = false;
+          deathDelay = 1.15;
+          setPaused(false);
+          resetKillStreak();
+        }
       }
     }
     game.events.length = 0;
@@ -3663,6 +4368,16 @@ class PeerHost {
     if (deathDelay > 0) {
       deathDelay -= dt;
       if (deathDelay <= 0 && game.state === "dead") showDeath();
+    }
+
+    if (killStreakTimer > 0) {
+      killStreakTimer -= dt;
+      if (killStreakTimer <= 0) killstreakEl.classList.remove("show");
+    }
+
+    if (!LOW_QUALITY && game.state === "playing") {
+      if (fps > 0 && fps < 40) lowFpsTimer += dt; else lowFpsTimer = 0;
+      if (lowFpsTimer > 3) { applyQuality(true, true); setStatus("AUTO-REDUCED RENDER QUALITY — LOW FPS", false); }
     }
 
 

@@ -59,7 +59,21 @@ const CFG = {
     VIEW_R_MUL: 30
   },
 
+  POWERUP: {
+    SPAWN_EVERY: 14,
+    LIFETIME: 22,
+    RADIUS: 15,
+    PICKUP_PAD: 20,
+    SPEED_MUL: 1.6,
+    SPEED_DUR: 6,
+    MAGNET_MUL: 2.1,
+    MAGNET_DUR: 7,
+    SHIELD_DUR: 5
+  },
+
   CAMERA: { VIEW_REF: 620, VIEW_PAD: 46, MIN_ZOOM: 0.16, MAX_ZOOM: 1.5, LERP: 2.4 },
+
+  MATCH: { TIMED_DURATION: 180 },
 
   RENDER: {
     TRAIL_FADE: 0.30,
@@ -85,6 +99,27 @@ const randi = (a, b) => Math.floor(rand(a, b + 1));
 const pick  = arr => arr[(Math.random() * arr.length) | 0];
 const chance = p => Math.random() < p;
 
+// swap Math.random for a seeded one during init() so the daily challenge gets the same world
+function mulberry32(seed) {
+  let s = seed >>> 0;
+  return function () {
+    s = (s + 0x6D2B79F5) | 0;
+    let t = Math.imul(s ^ (s >>> 15), 1 | s);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function dailySeed(dateKey) {
+  let h = 2166136261;
+  for (let i = 0; i < dateKey.length; i++) { h ^= dateKey.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return h >>> 0;
+}
+function withSeededRandom(seed, fn) {
+  const orig = Math.random;
+  Math.random = mulberry32(seed);
+  try { fn(); } finally { Math.random = orig; }
+}
+
 
 const radiusFromMass = m => Math.sqrt(m / Math.PI);
 const massFromRadius = r => Math.PI * r * r;
@@ -100,22 +135,26 @@ const nextId = () => __id++;
 
 const r2 = v => Math.round(v * 100) / 100;
 const r3 = v => Math.round(v * 1000) / 1000;
-const FOOD_TYPES = { dust: 0, asteroid: 1, planet: 2, rogue: 3 };
-const FOOD_TYPES_REV = ["dust", "asteroid", "planet", "rogue"];
+const FOOD_TYPES = { dust: 0, asteroid: 1, planet: 2, rogue: 3, power: 4 };
+const FOOD_TYPES_REV = ["dust", "asteroid", "planet", "rogue", "power"];
+const POWER_KINDS = ["speed", "magnet", "shield"];
 
 function encodePlayer(p) {
   return [p.id, Math.round(p.x), Math.round(p.y), Math.round(p.r), r2(p.stretch), r3(p.stretchAng),
-          p.color, p.name, p.isBot ? 1 : 0, r2(p.shield), r2(p.eatFlash), r3(p.diskAngle), r3(p.pulse)];
+          p.color, p.name, p.isBot ? 1 : 0, r2(p.shield), r2(p.eatFlash), r3(p.diskAngle), r3(p.pulse),
+          r2(p.speedT || 0), r2(p.magnetT || 0), p.team == null ? -1 : p.team];
 }
 function decodePlayer(a) {
   return { id: a[0], kind: "player", x: a[1], y: a[2], r: a[3], stretch: a[4], stretchAng: a[5],
            color: a[6], name: a[7], isBot: !!a[8], shield: a[9], eatFlash: a[10],
-           diskAngle: a[11], pulse: a[12], mass: massFromRadius(a[3]) };
+           diskAngle: a[11], pulse: a[12], speedT: a[13] || 0, magnetT: a[14] || 0,
+           team: a[15] == null || a[15] === -1 ? null : a[15], mass: massFromRadius(a[3]) };
 }
 function encodeFood(f) {
   if (f.type === "dust")     return [f.id, 0, Math.round(f.x), Math.round(f.y), Math.round(f.r), r2(f.stretch), r3(f.stretchAng), f.tint];
   if (f.type === "asteroid") return [f.id, 1, Math.round(f.x), Math.round(f.y), Math.round(f.r), r2(f.stretch), r3(f.stretchAng), f.tint, r3(f.angle), f.lumps];
   if (f.type === "rogue")    return [f.id, 3, Math.round(f.x), Math.round(f.y), Math.round(f.r), r2(f.stretch), r3(f.stretchAng), f.tint, f.name];
+  if (f.type === "power")    return [f.id, 4, Math.round(f.x), Math.round(f.y), Math.round(f.r), r2(f.stretch), r3(f.stretchAng), f.tint, f.powerKind];
   return [f.id, 2, Math.round(f.x), Math.round(f.y), Math.round(f.r), r2(f.stretch), r3(f.stretchAng), f.tint, r3(f.angle), f.hasRing ? 1 : 0, r3(f.ringTilt), f.pal];
 }
 function decodeFood(a) {
@@ -123,6 +162,7 @@ function decodeFood(a) {
   if (kind === "dust")     return { id: a[0], kind, x: a[2], y: a[3], r: a[4], stretch: a[5], stretchAng: a[6], tint: a[7] };
   if (kind === "asteroid") return { id: a[0], kind, x: a[2], y: a[3], r: a[4], stretch: a[5], stretchAng: a[6], tint: a[7], angle: a[8], lumps: a[9] };
   if (kind === "rogue")    return { id: a[0], kind, x: a[2], y: a[3], r: a[4], stretch: a[5], stretchAng: a[6], tint: a[7], name: a[8] };
+  if (kind === "power")    return { id: a[0], kind, x: a[2], y: a[3], r: a[4], stretch: a[5], stretchAng: a[6], tint: a[7], powerKind: a[8] };
   return { id: a[0], kind, x: a[2], y: a[3], r: a[4], stretch: a[5], stretchAng: a[6], tint: a[7], angle: a[8], hasRing: !!a[9], ringTilt: a[10], pal: a[11] };
 }
 
@@ -226,6 +266,18 @@ class Rogue extends Entity {
 }
 
 
+class PowerUp extends Entity {
+  constructor(x, y, powerKind) {
+    super(x, y, massFromRadius(CFG.POWERUP.RADIUS));
+    this.type = "power";
+    this.powerKind = powerKind;
+    this.ttl = CFG.POWERUP.LIFETIME;
+    this.vx = 0; this.vy = 0;
+    this.tint = powerKind === "speed" ? "#5ef0d8" : powerKind === "magnet" ? "#c98fff" : "#9fd8ff";
+  }
+}
+
+
 class Player extends Entity {
   constructor(x, y, name, color) {
     super(x, y, CFG.PLAYER.START_MASS);
@@ -241,6 +293,9 @@ class Player extends Entity {
     this.eatFlash = 0;
     this.shield = 0;
     this.trail = [];
+    this.speedT = 0;
+    this.magnetT = 0;
+    this.team = null;
 
     this.absorbed = 0;
     this.rivalsEaten = 0;
@@ -255,7 +310,10 @@ class Player extends Entity {
     const s = CFG.PLAYER.BASE_SPEED * Math.pow(20 / (20 + this.r), CFG.PLAYER.SPEED_FALLOFF);
     return Math.max(CFG.PLAYER.MIN_SPEED, s);
   }
-  get influence() { return this.r * CFG.PHYSICS.INFLUENCE_MUL + CFG.PHYSICS.INFLUENCE_BASE; }
+  get influence() {
+    const base = this.r * CFG.PHYSICS.INFLUENCE_MUL + CFG.PHYSICS.INFLUENCE_BASE;
+    return this.magnetT > 0 ? base * CFG.POWERUP.MAGNET_MUL : base;
+  }
 
   step(dt, game) {
     const world = game.world;
@@ -265,6 +323,8 @@ class Player extends Entity {
     const boosting = this.boost && this.mass > CFG.BOOST.MIN_MASS;
     let sp = this.maxSpeed;
     if (boosting) sp *= CFG.BOOST.SPEED_MUL;
+    if (this.speedT > 0) { sp *= CFG.POWERUP.SPEED_MUL; this.speedT = Math.max(0, this.speedT - dt); }
+    if (this.magnetT > 0) this.magnetT = Math.max(0, this.magnetT - dt);
     const desiredVX = (dx / dist) * sp * ease;
     const desiredVY = (dy / dist) * sp * ease;
     const k = CFG.PLAYER.ACCEL_LERP * (24 / (24 + this.r * 0.30));
@@ -326,6 +386,8 @@ class Player extends Entity {
     this.bestRank = 99;
     this.shield = CFG.PLAYER.SPAWN_SHIELD;
     this.eatFlash = 0;
+    this.speedT = 0;
+    this.magnetT = 0;
     this.boost = false;
     this.boostTimer = 0;
   }
@@ -610,6 +672,10 @@ class Game {
     this.deathCam = null;
     this.rogueTimer = 0;
     this.lastRogueAt = -999;
+    this.powerupTimer = CFG.POWERUP.SPAWN_EVERY * 0.5;
+    this.matchMode = "classic";
+    this.matchEndAt = null;
+    this.dailyKey = null;
 
 
     this.gridCell = 400;
@@ -637,6 +703,12 @@ class Game {
     this.rebuildGrid();
   }
 
+  // only the layout is seeded, everything after is normal random play
+  initDaily(dateKey) {
+    this.dailyKey = dateKey;
+    withSeededRandom(dailySeed(dateKey), () => this.init());
+  }
+
 
   clearEntities() {
     this.food.length = 0;
@@ -652,6 +724,8 @@ class Game {
     this.state = "menu";
     this.rogueTimer = 0;
     this.lastRogueAt = -999;
+    this.powerupTimer = CFG.POWERUP.SPAWN_EVERY * 0.5;
+    this.dailyKey = null;
   }
 
   spawnBot(used) {
@@ -694,6 +768,7 @@ class Game {
     this.deathCam = killer && !killer.dead ? killer : null;
     this.deathInfo = {
       killer: killer ? killer.name : "THE VOID",
+      matchEnd: false, won: false,
       peakMass: me.peakMass,
       rank: me.bestRank,
       time: this.time - me.spawnTime,
@@ -701,6 +776,44 @@ class Game {
       rivalsEaten: me.rivalsEaten
     };
     this.events.push({ type: "death", hole: me, killer });
+  }
+
+  // timed match ran out, or you're the last one alive in elimination
+  endMatchFor(player, rankOverride) {
+    if (player.dead) return;
+    // pass rankOverride when ending several players at once, ranks have to be
+    // grabbed before anyone gets marked dead or they throw each other off
+    const rank = rankOverride != null ? rankOverride : this.rankOf(player);
+    player.bestRank = Math.min(player.bestRank, rank);
+    player.dead = true;
+    const won = rank === 1;
+    this.events.push({ type: "matchend", hole: player, rank: player.bestRank, won });
+    if (player === this.local) {
+      this.state = "dead";
+      this.deathCam = null;
+      this.deathInfo = {
+        killer: null, matchEnd: true, won,
+        peakMass: player.peakMass,
+        rank: player.bestRank,
+        time: this.time - player.spawnTime,
+        absorbed: player.absorbed,
+        rivalsEaten: player.rivalsEaten
+      };
+    }
+  }
+
+  checkMatchEnd() {
+    if (this.matchMode === "timed") {
+      if (this.matchEndAt != null && this.time >= this.matchEndAt) {
+        const survivors = this.players.filter(p => !p.dead);
+        const ranks = new Map(survivors.map(p => [p, this.rankOf(p)]));
+        for (const p of survivors) this.endMatchFor(p, ranks.get(p));
+        this.matchEndAt = null;
+      }
+    } else if (this.matchMode === "elimination") {
+      const alive = this.players.filter(p => !p.dead);
+      if (alive.length === 1) this.endMatchFor(alive[0]);
+    }
   }
 
   step(dt) {
@@ -727,12 +840,17 @@ class Game {
 
     this.buildSpatial();
     this.resolveEating();
+    this.resolvePowerups();
     for (const p of this.particles) p.step(dt);
 
     this.rogueTimer -= dt;
     if (this.rogueTimer <= 0) { this.rogueTimer = CFG.ROGUE.CHECK_EVERY; this.maybeSpawnRogue(); }
     this.stepRogues(dt);
 
+    this.powerupTimer -= dt;
+    if (this.powerupTimer <= 0) { this.powerupTimer = CFG.POWERUP.SPAWN_EVERY * rand(0.8, 1.3); this.spawnPowerup(); }
+
+    this.checkMatchEnd();
     this.updateRanks();
     this.compact();
     this.repopulate();
@@ -873,7 +991,8 @@ class Game {
 
       const tryEat = (B) => {
         if (B === H || B.dead) return;
-        if (B.type === "rogue") return;
+        if (B.type === "rogue" || B.type === "power") return;
+        if (B.type === "player" && H.team != null && B.team != null && H.team === B.team) return;
         if (B.shield > 0) return;
         if (H.mass < B.mass * EAT_RATIO) return;
         const d = Math.hypot(B.x - H.x, B.y - H.y);
@@ -894,6 +1013,28 @@ class Game {
 
       this.queryCircle(H.x, H.y, H.r * 1.6, tryEat);
     }
+  }
+
+  resolvePowerups() {
+    for (const H of this.players) {
+      if (H.dead) continue;
+      const pad = H.r + CFG.POWERUP.RADIUS + CFG.POWERUP.PICKUP_PAD;
+      this.queryCircle(H.x, H.y, pad, (e) => {
+        if (e.type !== "power" || e.dead) return;
+        const d = Math.hypot(e.x - H.x, e.y - H.y);
+        if (d > H.r + CFG.POWERUP.RADIUS) return;
+        e.dead = true;
+        if (e.powerKind === "speed") H.speedT = CFG.POWERUP.SPEED_DUR;
+        else if (e.powerKind === "magnet") H.magnetT = CFG.POWERUP.MAGNET_DUR;
+        else if (e.powerKind === "shield") H.shield = Math.max(H.shield, CFG.POWERUP.SHIELD_DUR);
+        this.events.push({ type: "power", kind: e.powerKind, hole: H, x: e.x, y: e.y });
+      });
+    }
+  }
+
+  spawnPowerup() {
+    const x = rand(300, this.world.w - 300), y = rand(300, this.world.h - 300);
+    this.food.push(new PowerUp(x, y, pick(POWER_KINDS)));
   }
 
   spawnAbsorption(victim, hole) {
@@ -995,17 +1136,19 @@ class Game {
     while (counts.asteroid < CFG.COUNTS.asteroids) { const p = away(); this.food.push(new Asteroid(p.x, p.y)); counts.asteroid++; }
     while (counts.planet < CFG.COUNTS.planets)     { const p = away(); this.food.push(new Planet(p.x, p.y)); counts.planet++; }
 
-    const wanted = CFG.COUNTS.bots + (this.state === "playing" ? 1 : 0);
-    const used = new Set(this.players.map(p => p.name));
-    let guard = 0;
-    while (this.players.length < wanted && guard++ < 4) this.spawnBot(used);
+    if (this.matchMode !== "elimination") {
+      const wanted = CFG.COUNTS.bots + (this.state === "playing" ? 1 : 0);
+      const used = new Set(this.players.map(p => p.name));
+      let guard = 0;
+      while (this.players.length < wanted && guard++ < 4) this.spawnBot(used);
+    }
   }
 }
 
 return {
-  CFG, Game, Player, Rogue, Dust, Asteroid, Planet, Particle,
+  CFG, Game, Player, Rogue, Dust, Asteroid, Planet, Particle, PowerUp,
   HumanlikeController, RemoteIntentController,
-  encodePlayer, decodePlayer, encodeFood, decodeFood, FOOD_TYPES, FOOD_TYPES_REV,
+  encodePlayer, decodePlayer, encodeFood, decodeFood, FOOD_TYPES, FOOD_TYPES_REV, POWER_KINDS,
   nextId, clamp, lerp, damp, rand, randi, pick, chance,
   radiusFromMass, massFromRadius, fmt, mmss, TAU, HANDLES, HUES
 };

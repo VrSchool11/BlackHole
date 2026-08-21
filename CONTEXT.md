@@ -1,83 +1,40 @@
-# Blackhole.io — Architecture & Context
+# notes on this project
 
-Single-file HTML5 canvas game (vanilla JS, no build step). An agar.io-style game where you
-are a black hole eating dust, asteroids, planets and rival holes, with real inverse-square
-gravity. Works solo vs bots, and now real-time multiplayer with room codes.
+Agar.io-ish game but you're a black hole. Real inverse-square gravity instead of the usual
+"bigger eats smaller" rule, that's the whole hook. Single HTML file basically, no build step,
+vanilla JS.
 
-## Files
+## what's where
 
-- `index.html` — the client. CSS, HUD, death screen, WebAudio, mouse input, camera,
-  renderer, and the `NetworkController` that mirrors the server. Loads `sim.js` first.
-- `sim.js` — the shared, environment-agnostic simulation core (UMD: browser + Node).
-  Everything authoritative: `CFG`, entities (`Entity`, `Dust`, `Asteroid`, `Planet`,
-  `Player`, `Particle`), controllers (`HumanlikeController`, `RemoteIntentController`),
-  `Game`, plus the shared snapshot `encode*`/`decode*` wire helpers.
-- `server.js` — the authoritative server (Node + `ws`). One `Game` per room, 30Hz step,
-  per-client diff snapshots, room create/join/respawn/disconnect handling, and a tiny
-  static file server.
-- `package.json` — the only dependency (`ws`).
+- `index.html` — client. CSS/HUD/death screen/audio/camera/renderer, plus the P2P networking
+  (`NetworkController`, `PeerHost`, `PeerSocket`). Loads `sim.js` first.
+- `sim.js` — the actual simulation, shared between browser and node (UMD wrapper so server.js
+  could use it too). `Game`, entities, the encode/decode helpers for the wire snapshots.
+- `server.js` — old WebSocket server from before multiplayer moved to WebRTC. Not used by the
+  current client anymore, kept around in case a real dedicated server is ever worth it again.
+- `plinko.js` / `progression.js` — the death-screen bonus round and the token/quest/shop stuff.
 
-## Architecture (unchanged seam)
+Multiplayer is peer to peer now (PeerJS), no server needed — whoever clicks CREATE hosts the
+room out of their own browser tab using the same `Game` class solo mode uses, and just
+broadcasts snapshots to whoever joins. `NetworkController` on the joining side decodes those
+into a mirror `Game` and the same renderer draws it. See DEPLOY.md for hosting.
 
-```
-Game        -> authoritative SIMULATION. Owns world, entities, step(dt). Never draws.
-Renderer    -> READS Game, writes pixels. Never mutates simulation state.
-Controller  -> anything producing an "intent" (a desired world point) for a Player.
-Audio       -> synthesised WebAudio, event-driven off sim events. Client-only.
-```
+Game / Renderer / Controller stay separate — Game never draws, Renderer never touches sim
+state, Controller is just whatever's feeding a Player's mouse intent (human, bot AI, or
+network). Kept that split since multiplayer needs the client to mirror positions without
+running its own physics.
 
-- **Solo** — the local `Game` is stepped in a fixed-timestep accumulator (now 60Hz).
-- **Multiplayer** — the server's `Game` is stepped at 30Hz. Clients send only
-  `{t:"intent", x, y}`; they never run physics. The client `NetworkController` maintains a
-  mirror `Game`, interpolates between two snapshots, and writes positions into persistent
-  `Entity` instances the existing `Renderer` already draws.
+## random things worth knowing
 
-## Wire protocol (WebSocket at `/ws`)
+- rooms use 5-char codes, no I/O/0/1 so they're not confusable
+- bots fill empty slots up to 12 players, real people push bots out
+- spatial hashing (`buildSpatial`/`queryCircle`) so gravity/eating don't check every entity
+- solo runs the sim at 60Hz, used to be 120 before that felt unnecessary
 
-Client -> server:
-- `{t:"join", room:null|"CODE", name:"..."}` — create (null) or join a room.
-- `{t:"intent", x, y}` — the only per-tick payload, throttled to ~30Hz.
-- `{t:"respawn"}` — re-enter after death.
-
-Server -> client:
-- `{t:"joined", id, room, spawnTime}`
-- `{t:"s", time, p:[...], f:[...], d:[...]}` — diff snapshot (players/food/deleted ids).
-- `{t:"e", kind:"absorb"|"kill"|"death"|"spawn", ...}` — transient events for audio/particles/UI.
-- `{t:"err", code:"invalid"|"full"}`.
-
-Players encode as `[id,x,y,r,stretch,stretchAng,color,name,isBot,shield,eatFlash,diskAngle,pulse]`;
-food encodes by type (`dust|asteroid|planet`). Values are rounded so the per-client diff
-only ships what actually changed.
-
-## Rooms
-
-- Create generates a 5-char code (`K7QF2`-style) from an unambiguous alphabet (no I/O/0/1).
-- Each room is an isolated `Game` with its own entities and bots (bots fill empty rooms;
-  humans push the total toward the cap of 12).
-- Invalid code -> `err invalid`. At cap -> `err full`. Disconnect -> hole removed, name freed.
-- A room with zero members is destroyed to keep memory bounded.
-
-## Bug fixes made
-
-1. Merged the two duplicate `.stats { }` CSS rules into one.
-2. `repopulate()` now builds a `Set` of current names and passes it to `spawnBot()`, so
-   respawned bots can't duplicate a name (human or bot).
-3. `killLocal()` now resolves a real rank via `rankOf()` even on a near-instant death.
-
-## Performance fixes made
-
-1. Added a uniform spatial bucket index (`buildSpatial`/`queryCircle`) used by both gravity
-   and eating, so holes only test entities in cells their influence radius overlaps.
-2. Capped `shadowBlur` at 40 and total particles at 300.
-3. Dropped the solo sim from 120Hz to 60Hz (server is 30Hz; feel is unchanged).
-
-## Run locally
+## run it
 
 ```bash
 npm install
 npm start
-# open http://localhost:8787 in two tabs
+# localhost:8787, two tabs to test multiplayer
 ```
-
-Tab A: name + **CREATE ROOM** -> note the code shown top-centre. Tab B: name + code +
-**JOIN**. Both tabs send only their mouse intent; the server simulates and broadcasts.

@@ -131,25 +131,25 @@ class Plinko {
   draw() {
     const ctx = this.ctx, W = this.W, H = this.H;
     ctx.clearRect(0, 0, W, H);
-    ctx.fillStyle = "rgba(4,10,18,0.55)";
+    ctx.fillStyle = "rgba(16,13,7,0.6)";
     ctx.fillRect(0, 0, W, H);
 
 
     for (let i = 0; i < this.SLOTS.length; i++) {
       const x = i * this.slotW;
       const hot = this.landed && i === this.landedIdx;
-      ctx.fillStyle = hot ? "rgba(120,222,255,0.55)" : "rgba(80,120,180,0.28)";
+      ctx.fillStyle = hot ? "rgba(200,139,63,0.6)" : "rgba(200,139,63,0.14)";
       ctx.fillRect(x + 2, this.floorY, this.slotW - 4, H - this.floorY);
-      ctx.strokeStyle = "rgba(160,200,255,0.5)";
+      ctx.strokeStyle = "rgba(168,152,119,0.5)";
       ctx.strokeRect(x + 2, this.floorY, this.slotW - 4, H - this.floorY);
-      ctx.fillStyle = hot ? "#ffffff" : "#a8d0f0";
+      ctx.fillStyle = hot ? "#ece3c9" : "#a89877";
       ctx.font = "bold 15px monospace";
       ctx.textAlign = "center";
       ctx.fillText(this.slotLabel(this.SLOTS[i]), x + this.slotW / 2, this.floorY + 28);
     }
 
 
-    ctx.fillStyle = "rgba(170,200,240,0.75)";
+    ctx.fillStyle = "rgba(236,227,201,0.7)";
     for (const p of this.pegs) {
       ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.fill();
     }
@@ -158,8 +158,8 @@ class Plinko {
     if (this.ball) {
       const b = this.ball;
       ctx.save();
-      ctx.shadowBlur = 14; ctx.shadowColor = "#7fd0ff";
-      ctx.fillStyle = "#eaf6ff";
+      ctx.shadowBlur = 14; ctx.shadowColor = "#c88b3f";
+      ctx.fillStyle = "#ece3c9";
       ctx.beginPath(); ctx.arc(b.x, b.y, this.ballR, 0, Math.PI * 2); ctx.fill();
       ctx.restore();
     }
