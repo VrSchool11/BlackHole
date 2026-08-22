@@ -1762,7 +1762,7 @@ class Game {
 
       const pullOne = (B) => {
         if (B === H || B.dead) return;
-        if (B.type === "rogue") return;
+        if (B.type === "rogue" || B.type === "wormhole") return;
         if (B.type === "player" && B.mass >= Hm) return;
 
         const dx = H.x - B.x, dy = H.y - B.y;
