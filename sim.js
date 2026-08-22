@@ -73,6 +73,14 @@ const CFG = {
 
   CAMERA: { VIEW_REF: 620, VIEW_PAD: 46, MIN_ZOOM: 0.16, MAX_ZOOM: 1.5, LERP: 2.4 },
 
+  DASH: { COST_RATIO: 0.22, MIN_MASS: 260, DISTANCE: 340, COOLDOWN: 4 },
+  WORMHOLE: { RADIUS: 34, COOLDOWN: 3, RESPAWN_EVERY: 45 },
+  SUPERNOVA: { EVERY: 40, RADIUS: 1400, FORCE: 2400 },
+  SLINGSHOT: { BAND_MIN_MUL: 1.3, BAND_MAX_MUL: 2.2, DUR: 2.5, COOLDOWN: 1.5, MIN_SPEED: 120 },
+  DECAY: { LEAD_RATIO: 1.6, MIN_LEADER: 3000, RATE: 6 },
+  SHOCKWAVE: { RATIO: 2.2, RADIUS_MUL: 3.2, FORCE: 900 },
+  BOUNTY: { MIN_MASS: 3000, BASE: 200, PER_MASS: 0.05 },
+
   MATCH: { TIMED_DURATION: 180 },
 
   RENDER: {
@@ -114,8 +122,8 @@ const nextId = () => __id++;
 
 const r2 = v => Math.round(v * 100) / 100;
 const r3 = v => Math.round(v * 1000) / 1000;
-const FOOD_TYPES = { dust: 0, asteroid: 1, planet: 2, rogue: 3, power: 4 };
-const FOOD_TYPES_REV = ["dust", "asteroid", "planet", "rogue", "power"];
+const FOOD_TYPES = { dust: 0, asteroid: 1, planet: 2, rogue: 3, power: 4, wormhole: 5 };
+const FOOD_TYPES_REV = ["dust", "asteroid", "planet", "rogue", "power", "wormhole"];
 const POWER_KINDS = ["speed", "magnet", "shield"];
 
 function encodePlayer(p) {
@@ -134,6 +142,7 @@ function encodeFood(f) {
   if (f.type === "asteroid") return [f.id, 1, Math.round(f.x), Math.round(f.y), Math.round(f.r), r2(f.stretch), r3(f.stretchAng), f.tint, r3(f.angle), f.lumps];
   if (f.type === "rogue")    return [f.id, 3, Math.round(f.x), Math.round(f.y), Math.round(f.r), r2(f.stretch), r3(f.stretchAng), f.tint, f.name];
   if (f.type === "power")    return [f.id, 4, Math.round(f.x), Math.round(f.y), Math.round(f.r), r2(f.stretch), r3(f.stretchAng), f.tint, f.powerKind];
+  if (f.type === "wormhole") return [f.id, 5, Math.round(f.x), Math.round(f.y), Math.round(f.r), r2(f.stretch), r3(f.stretchAng), f.tint, f.linkId];
   return [f.id, 2, Math.round(f.x), Math.round(f.y), Math.round(f.r), r2(f.stretch), r3(f.stretchAng), f.tint, r3(f.angle), f.hasRing ? 1 : 0, r3(f.ringTilt), f.pal];
 }
 function decodeFood(a) {
@@ -142,6 +151,7 @@ function decodeFood(a) {
   if (kind === "asteroid") return { id: a[0], kind, x: a[2], y: a[3], r: a[4], stretch: a[5], stretchAng: a[6], tint: a[7], angle: a[8], lumps: a[9] };
   if (kind === "rogue")    return { id: a[0], kind, x: a[2], y: a[3], r: a[4], stretch: a[5], stretchAng: a[6], tint: a[7], name: a[8] };
   if (kind === "power")    return { id: a[0], kind, x: a[2], y: a[3], r: a[4], stretch: a[5], stretchAng: a[6], tint: a[7], powerKind: a[8] };
+  if (kind === "wormhole") return { id: a[0], kind, x: a[2], y: a[3], r: a[4], stretch: a[5], stretchAng: a[6], tint: a[7], linkId: a[8] };
   return { id: a[0], kind, x: a[2], y: a[3], r: a[4], stretch: a[5], stretchAng: a[6], tint: a[7], angle: a[8], hasRing: !!a[9], ringTilt: a[10], pal: a[11] };
 }
 
@@ -256,6 +266,16 @@ class PowerUp extends Entity {
   }
 }
 
+class Wormhole extends Entity {
+  constructor(x, y, linkId) {
+    super(x, y, massFromRadius(CFG.WORMHOLE.RADIUS));
+    this.type = "wormhole";
+    this.linkId = linkId;
+    this.vx = 0; this.vy = 0;
+    this.tint = "#a06cff";
+  }
+}
+
 
 class Player extends Entity {
   constructor(x, y, name, color) {
@@ -275,6 +295,9 @@ class Player extends Entity {
     this.speedT = 0;
     this.magnetT = 0;
     this.team = null;
+    this.dashCooldown = 0;
+    this.wormholeCooldown = 0;
+    this.slingshotCooldown = 0;
 
     this.absorbed = 0;
     this.rivalsEaten = 0;
@@ -304,6 +327,9 @@ class Player extends Entity {
     if (boosting) sp *= CFG.BOOST.SPEED_MUL;
     if (this.speedT > 0) { sp *= CFG.POWERUP.SPEED_MUL; this.speedT = Math.max(0, this.speedT - dt); }
     if (this.magnetT > 0) this.magnetT = Math.max(0, this.magnetT - dt);
+    if (this.dashCooldown > 0) this.dashCooldown = Math.max(0, this.dashCooldown - dt);
+    if (this.wormholeCooldown > 0) this.wormholeCooldown = Math.max(0, this.wormholeCooldown - dt);
+    if (this.slingshotCooldown > 0) this.slingshotCooldown = Math.max(0, this.slingshotCooldown - dt);
     const desiredVX = (dx / dist) * sp * ease;
     const desiredVY = (dy / dist) * sp * ease;
     const k = CFG.PLAYER.ACCEL_LERP * (24 / (24 + this.r * 0.30));
@@ -352,6 +378,34 @@ class Player extends Entity {
     if (other.type === "player") this.shield = 0;
   }
 
+  // instant burst forward, costs mass, on a cooldown — the "thread the gap" move
+  tryDash(game) {
+    if (this.dashCooldown > 0) return false;
+    if (this.mass < CFG.DASH.MIN_MASS) return false;
+    const dx = this.intentX - this.x, dy = this.intentY - this.y;
+    const d = Math.hypot(dx, dy) || 1;
+    const nx = dx / d, ny = dy / d;
+    const cost = this.mass * CFG.DASH.COST_RATIO;
+    this.setMass(Math.max(CFG.DASH.MIN_MASS * 0.6, this.mass - cost));
+    const world = game.world;
+    this.x = clamp(this.x + nx * CFG.DASH.DISTANCE, this.r, world.w - this.r);
+    this.y = clamp(this.y + ny * CFG.DASH.DISTANCE, this.r, world.h - this.r);
+    this.vx = nx * this.maxSpeed * 1.4;
+    this.vy = ny * this.maxSpeed * 1.4;
+    this.dashCooldown = CFG.DASH.COOLDOWN;
+    for (let i = 0; i < 8; i++) {
+      const a = Math.atan2(ny, nx) + Math.PI + rand(-0.5, 0.5);
+      const pellet = new Dust(this.x + Math.cos(a) * (this.r * 0.6), this.y + Math.sin(a) * (this.r * 0.6));
+      pellet.setMass(cost / 10);
+      pellet.vx = Math.cos(a) * 160; pellet.vy = Math.sin(a) * 160;
+      pellet.tint = this.color;
+      pellet.ttl = 1.4;
+      game.food.push(pellet);
+    }
+    game.events.push({ type: "dash", hole: this, x: this.x, y: this.y });
+    return true;
+  }
+
   reset(x, y) {
     this.dead = false;
     this.setMass(CFG.PLAYER.START_MASS);
@@ -367,6 +421,9 @@ class Player extends Entity {
     this.eatFlash = 0;
     this.speedT = 0;
     this.magnetT = 0;
+    this.dashCooldown = 0;
+    this.wormholeCooldown = 0;
+    this.slingshotCooldown = 0;
     this.boost = false;
     this.boostTimer = 0;
   }
@@ -652,6 +709,8 @@ class Game {
     this.rogueTimer = 0;
     this.lastRogueAt = -999;
     this.powerupTimer = CFG.POWERUP.SPAWN_EVERY * 0.5;
+    this.wormholeTimer = 2;
+    this.supernovaTimer = CFG.SUPERNOVA.EVERY * 0.5;
     this.matchMode = "classic";
     this.matchEndAt = null;
 
@@ -696,6 +755,8 @@ class Game {
     this.rogueTimer = 0;
     this.lastRogueAt = -999;
     this.powerupTimer = CFG.POWERUP.SPAWN_EVERY * 0.5;
+    this.wormholeTimer = 2;
+    this.supernovaTimer = CFG.SUPERNOVA.EVERY * 0.5;
   }
 
   spawnBot(used) {
@@ -798,6 +859,7 @@ class Game {
 
     this.buildSpatial();
     this.applyGravity(dt);
+    this.applySlingshots(dt);
 
     for (const e of this.food) {
       if (e.dead) continue;
@@ -811,6 +873,7 @@ class Game {
     this.buildSpatial();
     this.resolveEating();
     this.resolvePowerups();
+    this.resolveWormholes();
     for (const p of this.particles) p.step(dt);
 
     this.rogueTimer -= dt;
@@ -820,8 +883,15 @@ class Game {
     this.powerupTimer -= dt;
     if (this.powerupTimer <= 0) { this.powerupTimer = CFG.POWERUP.SPAWN_EVERY * rand(0.8, 1.3); this.spawnPowerup(); }
 
+    this.wormholeTimer -= dt;
+    if (this.wormholeTimer <= 0) { this.wormholeTimer = CFG.WORMHOLE.RESPAWN_EVERY; this.spawnWormholePair(); }
+
+    this.supernovaTimer -= dt;
+    if (this.supernovaTimer <= 0) { this.supernovaTimer = CFG.SUPERNOVA.EVERY * rand(0.85, 1.2); this.triggerSupernova(); }
+
     this.checkMatchEnd();
     this.updateRanks();
+    this.applyLeaderDecay(dt);
     this.compact();
     this.repopulate();
 
@@ -951,6 +1021,48 @@ class Game {
     for (const B of this.food) B.stretch = damp(B.stretch, 1, 5.5, dt);
   }
 
+  // graze a planet at speed and get a free burst, like a gravity assist
+  applySlingshots(dt) {
+    const { BAND_MIN_MUL, BAND_MAX_MUL, DUR, COOLDOWN, MIN_SPEED } = CFG.SLINGSHOT;
+    for (const H of this.players) {
+      if (H.dead || H.slingshotCooldown > 0) continue;
+      const speed = Math.hypot(H.vx, H.vy);
+      if (speed < MIN_SPEED) continue;
+      for (const e of this.food) {
+        if (e.type !== "planet") continue;
+        const d = Math.hypot(e.x - H.x, e.y - H.y);
+        if (d < e.r * BAND_MIN_MUL || d > e.r * BAND_MAX_MUL) continue;
+        H.speedT = Math.max(H.speedT, DUR);
+        H.slingshotCooldown = COOLDOWN;
+        this.events.push({ type: "slingshot", hole: H, x: H.x, y: H.y });
+        break;
+      }
+    }
+  }
+
+  applyLeaderDecay(dt) {
+    const leader = this.ranked[0];
+    if (!leader || leader.mass < CFG.DECAY.MIN_LEADER) return;
+    const runnerUp = this.ranked[1];
+    if (runnerUp && leader.mass < runnerUp.mass * CFG.DECAY.LEAD_RATIO) return;
+    leader.setMass(Math.max(CFG.DECAY.MIN_LEADER, leader.mass - CFG.DECAY.RATE * dt));
+  }
+
+  triggerShockwave(H) {
+    const R = H.r * CFG.SHOCKWAVE.RADIUS_MUL;
+    this.queryCircle(H.x, H.y, R, (e) => {
+      if (e === H || e.dead || e.type !== "player") return;
+      if (e.mass >= H.mass) return;
+      const dx = e.x - H.x, dy = e.y - H.y;
+      const d = Math.hypot(dx, dy) || 1;
+      const falloff = clamp(1 - d / R, 0, 1);
+      const force = CFG.SHOCKWAVE.FORCE * falloff;
+      e.vx += (dx / d) * force;
+      e.vy += (dy / d) * force;
+    });
+    this.events.push({ type: "shockwave", x: H.x, y: H.y, r: R, hole: H });
+  }
+
 
   resolveEating() {
     const { EAT_RATIO, EAT_OVERLAP } = CFG.PHYSICS;
@@ -961,12 +1073,14 @@ class Game {
 
       const tryEat = (B) => {
         if (B === H || B.dead) return;
-        if (B.type === "rogue" || B.type === "power") return;
+        if (B.type === "rogue" || B.type === "power" || B.type === "wormhole") return;
         if (B.type === "player" && H.team != null && B.team != null && H.team === B.team) return;
         if (B.shield > 0) return;
         if (H.mass < B.mass * EAT_RATIO) return;
         const d = Math.hypot(B.x - H.x, B.y - H.y);
         if (d > H.r * EAT_OVERLAP + B.r * 0.25) return;
+
+        const lopsided = B.type === "player" && H.mass > B.mass * CFG.SHOCKWAVE.RATIO;
 
         B.dead = true;
         H.consume(B);
@@ -978,6 +1092,8 @@ class Game {
           if (this.feed.length > 6) this.feed.length = 6;
           if (B === this.local) this.killLocal(H);
         }
+
+        if (lopsided) this.triggerShockwave(H);
       };
 
 
@@ -1005,6 +1121,50 @@ class Game {
   spawnPowerup() {
     const x = rand(300, this.world.w - 300), y = rand(300, this.world.h - 300);
     this.food.push(new PowerUp(x, y, pick(POWER_KINDS)));
+  }
+
+  resolveWormholes() {
+    for (const H of this.players) {
+      if (H.dead || H.wormholeCooldown > 0) continue;
+      this.queryCircle(H.x, H.y, CFG.WORMHOLE.RADIUS, (e) => {
+        if (e.type !== "wormhole" || e.dead || H.wormholeCooldown > 0) return;
+        const d = Math.hypot(e.x - H.x, e.y - H.y);
+        if (d > CFG.WORMHOLE.RADIUS) return;
+        const dest = this.food.find(f => f.type === "wormhole" && f.id === e.linkId);
+        if (!dest) return;
+        H.x = dest.x; H.y = dest.y;
+        H.intentX = dest.x; H.intentY = dest.y;
+        H.wormholeCooldown = CFG.WORMHOLE.COOLDOWN;
+        H.shield = Math.max(H.shield, 1.2);
+        this.events.push({ type: "wormhole", hole: H, x: dest.x, y: dest.y });
+      });
+    }
+  }
+
+  spawnWormholePair() {
+    for (const f of this.food) if (f.type === "wormhole") f.dead = true;
+    const pad = 500;
+    const a = new Wormhole(rand(pad, this.world.w - pad), rand(pad, this.world.h - pad), 0);
+    const b = new Wormhole(rand(pad, this.world.w - pad), rand(pad, this.world.h - pad), a.id);
+    a.linkId = b.id;
+    this.food.push(a, b);
+  }
+
+  triggerSupernova() {
+    const x = rand(600, this.world.w - 600), y = rand(600, this.world.h - 600);
+    const R = CFG.SUPERNOVA.RADIUS;
+    const blast = (e) => {
+      if (e.dead) return;
+      const dx = e.x - x, dy = e.y - y;
+      const d = Math.hypot(dx, dy) || 1;
+      if (d > R) return;
+      const falloff = clamp(1 - d / R, 0, 1);
+      const force = CFG.SUPERNOVA.FORCE * falloff * falloff;
+      e.vx += (dx / d) * force;
+      e.vy += (dy / d) * force;
+    };
+    this.queryCircle(x, y, R, blast);
+    this.events.push({ type: "supernova", x, y, r: R });
   }
 
   spawnAbsorption(victim, hole) {
@@ -1116,7 +1276,7 @@ class Game {
 }
 
 return {
-  CFG, Game, Player, Rogue, Dust, Asteroid, Planet, Particle, PowerUp,
+  CFG, Game, Player, Rogue, Dust, Asteroid, Planet, Particle, PowerUp, Wormhole,
   HumanlikeController, RemoteIntentController,
   encodePlayer, decodePlayer, encodeFood, decodeFood, FOOD_TYPES, FOOD_TYPES_REV, POWER_KINDS,
   nextId, clamp, lerp, damp, rand, randi, pick, chance,

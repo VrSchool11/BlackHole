@@ -112,6 +112,7 @@
   }
   #board .me { color: var(--brass); }
   #board .team-score { margin-bottom: 6px; padding-bottom: 6px; border-bottom: 1px solid var(--line-soft); font-weight: 700; }
+  #board .bounty { margin-bottom: 6px; padding-bottom: 6px; border-bottom: 1px solid var(--line-soft); color: var(--brass); font-weight: 700; }
   #board .team-red { color: #d9605a; }
   #board .team-blue { color: #5a8fd9; }
 
@@ -677,7 +678,7 @@
 <div id="killstreak"></div>
 <div id="tutorial" class="gone">
   <div class="tutorial-title">FIELD NOTE</div>
-  <div class="tutorial-body">Consume anything smaller. Flee anything bigger. Hold shift to boost — it costs mass, so spend it to escape or to close a gap.</div>
+  <div class="tutorial-body">Consume anything smaller. Flee anything bigger. Hold shift to boost, press E to dash — both cost mass, so spend them to escape or close a gap.</div>
   <button id="tutorial-dismiss">UNDERSTOOD</button>
 </div>
 
@@ -849,6 +850,14 @@ const CFG = {
 
   CAMERA: { VIEW_REF: 620, VIEW_PAD: 46, MIN_ZOOM: 0.16, MAX_ZOOM: 1.5, LERP: 2.4 },
 
+  DASH: { COST_RATIO: 0.22, MIN_MASS: 260, DISTANCE: 340, COOLDOWN: 4 },
+  WORMHOLE: { RADIUS: 34, COOLDOWN: 3, RESPAWN_EVERY: 45 },
+  SUPERNOVA: { EVERY: 40, RADIUS: 1400, FORCE: 2400 },
+  SLINGSHOT: { BAND_MIN_MUL: 1.3, BAND_MAX_MUL: 2.2, DUR: 2.5, COOLDOWN: 1.5, MIN_SPEED: 120 },
+  DECAY: { LEAD_RATIO: 1.6, MIN_LEADER: 3000, RATE: 6 },
+  SHOCKWAVE: { RATIO: 2.2, RADIUS_MUL: 3.2, FORCE: 900 },
+  BOUNTY: { MIN_MASS: 3000, BASE: 200, PER_MASS: 0.05 },
+
   MATCH: { TIMED_DURATION: 180 },
 
   RENDER: {
@@ -890,8 +899,8 @@ const nextId = () => __id++;
 
 const r2 = v => Math.round(v * 100) / 100;
 const r3 = v => Math.round(v * 1000) / 1000;
-const FOOD_TYPES = { dust: 0, asteroid: 1, planet: 2, rogue: 3, power: 4 };
-const FOOD_TYPES_REV = ["dust", "asteroid", "planet", "rogue", "power"];
+const FOOD_TYPES = { dust: 0, asteroid: 1, planet: 2, rogue: 3, power: 4, wormhole: 5 };
+const FOOD_TYPES_REV = ["dust", "asteroid", "planet", "rogue", "power", "wormhole"];
 const POWER_KINDS = ["speed", "magnet", "shield"];
 
 function encodePlayer(p) {
@@ -910,6 +919,7 @@ function encodeFood(f) {
   if (f.type === "asteroid") return [f.id, 1, Math.round(f.x), Math.round(f.y), Math.round(f.r), r2(f.stretch), r3(f.stretchAng), f.tint, r3(f.angle), f.lumps];
   if (f.type === "rogue")    return [f.id, 3, Math.round(f.x), Math.round(f.y), Math.round(f.r), r2(f.stretch), r3(f.stretchAng), f.tint, f.name];
   if (f.type === "power")    return [f.id, 4, Math.round(f.x), Math.round(f.y), Math.round(f.r), r2(f.stretch), r3(f.stretchAng), f.tint, f.powerKind];
+  if (f.type === "wormhole") return [f.id, 5, Math.round(f.x), Math.round(f.y), Math.round(f.r), r2(f.stretch), r3(f.stretchAng), f.tint, f.linkId];
   return [f.id, 2, Math.round(f.x), Math.round(f.y), Math.round(f.r), r2(f.stretch), r3(f.stretchAng), f.tint, r3(f.angle), f.hasRing ? 1 : 0, r3(f.ringTilt), f.pal];
 }
 function decodeFood(a) {
@@ -918,6 +928,7 @@ function decodeFood(a) {
   if (kind === "asteroid") return { id: a[0], kind, x: a[2], y: a[3], r: a[4], stretch: a[5], stretchAng: a[6], tint: a[7], angle: a[8], lumps: a[9] };
   if (kind === "rogue")    return { id: a[0], kind, x: a[2], y: a[3], r: a[4], stretch: a[5], stretchAng: a[6], tint: a[7], name: a[8] };
   if (kind === "power")    return { id: a[0], kind, x: a[2], y: a[3], r: a[4], stretch: a[5], stretchAng: a[6], tint: a[7], powerKind: a[8] };
+  if (kind === "wormhole") return { id: a[0], kind, x: a[2], y: a[3], r: a[4], stretch: a[5], stretchAng: a[6], tint: a[7], linkId: a[8] };
   return { id: a[0], kind, x: a[2], y: a[3], r: a[4], stretch: a[5], stretchAng: a[6], tint: a[7], angle: a[8], hasRing: !!a[9], ringTilt: a[10], pal: a[11] };
 }
 
@@ -1032,6 +1043,16 @@ class PowerUp extends Entity {
   }
 }
 
+class Wormhole extends Entity {
+  constructor(x, y, linkId) {
+    super(x, y, massFromRadius(CFG.WORMHOLE.RADIUS));
+    this.type = "wormhole";
+    this.linkId = linkId;
+    this.vx = 0; this.vy = 0;
+    this.tint = "#a06cff";
+  }
+}
+
 
 class Player extends Entity {
   constructor(x, y, name, color) {
@@ -1051,6 +1072,9 @@ class Player extends Entity {
     this.speedT = 0;
     this.magnetT = 0;
     this.team = null;
+    this.dashCooldown = 0;
+    this.wormholeCooldown = 0;
+    this.slingshotCooldown = 0;
 
     this.absorbed = 0;
     this.rivalsEaten = 0;
@@ -1080,6 +1104,9 @@ class Player extends Entity {
     if (boosting) sp *= CFG.BOOST.SPEED_MUL;
     if (this.speedT > 0) { sp *= CFG.POWERUP.SPEED_MUL; this.speedT = Math.max(0, this.speedT - dt); }
     if (this.magnetT > 0) this.magnetT = Math.max(0, this.magnetT - dt);
+    if (this.dashCooldown > 0) this.dashCooldown = Math.max(0, this.dashCooldown - dt);
+    if (this.wormholeCooldown > 0) this.wormholeCooldown = Math.max(0, this.wormholeCooldown - dt);
+    if (this.slingshotCooldown > 0) this.slingshotCooldown = Math.max(0, this.slingshotCooldown - dt);
     const desiredVX = (dx / dist) * sp * ease;
     const desiredVY = (dy / dist) * sp * ease;
     const k = CFG.PLAYER.ACCEL_LERP * (24 / (24 + this.r * 0.30));
@@ -1128,6 +1155,34 @@ class Player extends Entity {
     if (other.type === "player") this.shield = 0;
   }
 
+  // instant burst forward, costs mass, on a cooldown — the "thread the gap" move
+  tryDash(game) {
+    if (this.dashCooldown > 0) return false;
+    if (this.mass < CFG.DASH.MIN_MASS) return false;
+    const dx = this.intentX - this.x, dy = this.intentY - this.y;
+    const d = Math.hypot(dx, dy) || 1;
+    const nx = dx / d, ny = dy / d;
+    const cost = this.mass * CFG.DASH.COST_RATIO;
+    this.setMass(Math.max(CFG.DASH.MIN_MASS * 0.6, this.mass - cost));
+    const world = game.world;
+    this.x = clamp(this.x + nx * CFG.DASH.DISTANCE, this.r, world.w - this.r);
+    this.y = clamp(this.y + ny * CFG.DASH.DISTANCE, this.r, world.h - this.r);
+    this.vx = nx * this.maxSpeed * 1.4;
+    this.vy = ny * this.maxSpeed * 1.4;
+    this.dashCooldown = CFG.DASH.COOLDOWN;
+    for (let i = 0; i < 8; i++) {
+      const a = Math.atan2(ny, nx) + Math.PI + rand(-0.5, 0.5);
+      const pellet = new Dust(this.x + Math.cos(a) * (this.r * 0.6), this.y + Math.sin(a) * (this.r * 0.6));
+      pellet.setMass(cost / 10);
+      pellet.vx = Math.cos(a) * 160; pellet.vy = Math.sin(a) * 160;
+      pellet.tint = this.color;
+      pellet.ttl = 1.4;
+      game.food.push(pellet);
+    }
+    game.events.push({ type: "dash", hole: this, x: this.x, y: this.y });
+    return true;
+  }
+
   reset(x, y) {
     this.dead = false;
     this.setMass(CFG.PLAYER.START_MASS);
@@ -1143,6 +1198,9 @@ class Player extends Entity {
     this.eatFlash = 0;
     this.speedT = 0;
     this.magnetT = 0;
+    this.dashCooldown = 0;
+    this.wormholeCooldown = 0;
+    this.slingshotCooldown = 0;
     this.boost = false;
     this.boostTimer = 0;
   }
@@ -1428,6 +1486,8 @@ class Game {
     this.rogueTimer = 0;
     this.lastRogueAt = -999;
     this.powerupTimer = CFG.POWERUP.SPAWN_EVERY * 0.5;
+    this.wormholeTimer = 2;
+    this.supernovaTimer = CFG.SUPERNOVA.EVERY * 0.5;
     this.matchMode = "classic";
     this.matchEndAt = null;
 
@@ -1472,6 +1532,8 @@ class Game {
     this.rogueTimer = 0;
     this.lastRogueAt = -999;
     this.powerupTimer = CFG.POWERUP.SPAWN_EVERY * 0.5;
+    this.wormholeTimer = 2;
+    this.supernovaTimer = CFG.SUPERNOVA.EVERY * 0.5;
   }
 
   spawnBot(used) {
@@ -1574,6 +1636,7 @@ class Game {
 
     this.buildSpatial();
     this.applyGravity(dt);
+    this.applySlingshots(dt);
 
     for (const e of this.food) {
       if (e.dead) continue;
@@ -1587,6 +1650,7 @@ class Game {
     this.buildSpatial();
     this.resolveEating();
     this.resolvePowerups();
+    this.resolveWormholes();
     for (const p of this.particles) p.step(dt);
 
     this.rogueTimer -= dt;
@@ -1596,8 +1660,15 @@ class Game {
     this.powerupTimer -= dt;
     if (this.powerupTimer <= 0) { this.powerupTimer = CFG.POWERUP.SPAWN_EVERY * rand(0.8, 1.3); this.spawnPowerup(); }
 
+    this.wormholeTimer -= dt;
+    if (this.wormholeTimer <= 0) { this.wormholeTimer = CFG.WORMHOLE.RESPAWN_EVERY; this.spawnWormholePair(); }
+
+    this.supernovaTimer -= dt;
+    if (this.supernovaTimer <= 0) { this.supernovaTimer = CFG.SUPERNOVA.EVERY * rand(0.85, 1.2); this.triggerSupernova(); }
+
     this.checkMatchEnd();
     this.updateRanks();
+    this.applyLeaderDecay(dt);
     this.compact();
     this.repopulate();
 
@@ -1727,6 +1798,48 @@ class Game {
     for (const B of this.food) B.stretch = damp(B.stretch, 1, 5.5, dt);
   }
 
+  // graze a planet at speed and get a free burst, like a gravity assist
+  applySlingshots(dt) {
+    const { BAND_MIN_MUL, BAND_MAX_MUL, DUR, COOLDOWN, MIN_SPEED } = CFG.SLINGSHOT;
+    for (const H of this.players) {
+      if (H.dead || H.slingshotCooldown > 0) continue;
+      const speed = Math.hypot(H.vx, H.vy);
+      if (speed < MIN_SPEED) continue;
+      for (const e of this.food) {
+        if (e.type !== "planet") continue;
+        const d = Math.hypot(e.x - H.x, e.y - H.y);
+        if (d < e.r * BAND_MIN_MUL || d > e.r * BAND_MAX_MUL) continue;
+        H.speedT = Math.max(H.speedT, DUR);
+        H.slingshotCooldown = COOLDOWN;
+        this.events.push({ type: "slingshot", hole: H, x: H.x, y: H.y });
+        break;
+      }
+    }
+  }
+
+  applyLeaderDecay(dt) {
+    const leader = this.ranked[0];
+    if (!leader || leader.mass < CFG.DECAY.MIN_LEADER) return;
+    const runnerUp = this.ranked[1];
+    if (runnerUp && leader.mass < runnerUp.mass * CFG.DECAY.LEAD_RATIO) return;
+    leader.setMass(Math.max(CFG.DECAY.MIN_LEADER, leader.mass - CFG.DECAY.RATE * dt));
+  }
+
+  triggerShockwave(H) {
+    const R = H.r * CFG.SHOCKWAVE.RADIUS_MUL;
+    this.queryCircle(H.x, H.y, R, (e) => {
+      if (e === H || e.dead || e.type !== "player") return;
+      if (e.mass >= H.mass) return;
+      const dx = e.x - H.x, dy = e.y - H.y;
+      const d = Math.hypot(dx, dy) || 1;
+      const falloff = clamp(1 - d / R, 0, 1);
+      const force = CFG.SHOCKWAVE.FORCE * falloff;
+      e.vx += (dx / d) * force;
+      e.vy += (dy / d) * force;
+    });
+    this.events.push({ type: "shockwave", x: H.x, y: H.y, r: R, hole: H });
+  }
+
 
   resolveEating() {
     const { EAT_RATIO, EAT_OVERLAP } = CFG.PHYSICS;
@@ -1737,12 +1850,14 @@ class Game {
 
       const tryEat = (B) => {
         if (B === H || B.dead) return;
-        if (B.type === "rogue" || B.type === "power") return;
+        if (B.type === "rogue" || B.type === "power" || B.type === "wormhole") return;
         if (B.type === "player" && H.team != null && B.team != null && H.team === B.team) return;
         if (B.shield > 0) return;
         if (H.mass < B.mass * EAT_RATIO) return;
         const d = Math.hypot(B.x - H.x, B.y - H.y);
         if (d > H.r * EAT_OVERLAP + B.r * 0.25) return;
+
+        const lopsided = B.type === "player" && H.mass > B.mass * CFG.SHOCKWAVE.RATIO;
 
         B.dead = true;
         H.consume(B);
@@ -1754,6 +1869,8 @@ class Game {
           if (this.feed.length > 6) this.feed.length = 6;
           if (B === this.local) this.killLocal(H);
         }
+
+        if (lopsided) this.triggerShockwave(H);
       };
 
 
@@ -1781,6 +1898,50 @@ class Game {
   spawnPowerup() {
     const x = rand(300, this.world.w - 300), y = rand(300, this.world.h - 300);
     this.food.push(new PowerUp(x, y, pick(POWER_KINDS)));
+  }
+
+  resolveWormholes() {
+    for (const H of this.players) {
+      if (H.dead || H.wormholeCooldown > 0) continue;
+      this.queryCircle(H.x, H.y, CFG.WORMHOLE.RADIUS, (e) => {
+        if (e.type !== "wormhole" || e.dead || H.wormholeCooldown > 0) return;
+        const d = Math.hypot(e.x - H.x, e.y - H.y);
+        if (d > CFG.WORMHOLE.RADIUS) return;
+        const dest = this.food.find(f => f.type === "wormhole" && f.id === e.linkId);
+        if (!dest) return;
+        H.x = dest.x; H.y = dest.y;
+        H.intentX = dest.x; H.intentY = dest.y;
+        H.wormholeCooldown = CFG.WORMHOLE.COOLDOWN;
+        H.shield = Math.max(H.shield, 1.2);
+        this.events.push({ type: "wormhole", hole: H, x: dest.x, y: dest.y });
+      });
+    }
+  }
+
+  spawnWormholePair() {
+    for (const f of this.food) if (f.type === "wormhole") f.dead = true;
+    const pad = 500;
+    const a = new Wormhole(rand(pad, this.world.w - pad), rand(pad, this.world.h - pad), 0);
+    const b = new Wormhole(rand(pad, this.world.w - pad), rand(pad, this.world.h - pad), a.id);
+    a.linkId = b.id;
+    this.food.push(a, b);
+  }
+
+  triggerSupernova() {
+    const x = rand(600, this.world.w - 600), y = rand(600, this.world.h - 600);
+    const R = CFG.SUPERNOVA.RADIUS;
+    const blast = (e) => {
+      if (e.dead) return;
+      const dx = e.x - x, dy = e.y - y;
+      const d = Math.hypot(dx, dy) || 1;
+      if (d > R) return;
+      const falloff = clamp(1 - d / R, 0, 1);
+      const force = CFG.SUPERNOVA.FORCE * falloff * falloff;
+      e.vx += (dx / d) * force;
+      e.vy += (dy / d) * force;
+    };
+    this.queryCircle(x, y, R, blast);
+    this.events.push({ type: "supernova", x, y, r: R });
   }
 
   spawnAbsorption(victim, hole) {
@@ -1892,7 +2053,7 @@ class Game {
 }
 
 return {
-  CFG, Game, Player, Rogue, Dust, Asteroid, Planet, Particle, PowerUp,
+  CFG, Game, Player, Rogue, Dust, Asteroid, Planet, Particle, PowerUp, Wormhole,
   HumanlikeController, RemoteIntentController,
   encodePlayer, decodePlayer, encodeFood, decodeFood, FOOD_TYPES, FOOD_TYPES_REV, POWER_KINDS,
   nextId, clamp, lerp, damp, rand, randi, pick, chance,
@@ -2526,6 +2687,78 @@ class GameAudio {
       o.start(now + i * 0.05); o.stop(now + i * 0.05 + 0.25);
     });
   }
+
+  dash() {
+    if (!this.on) return;
+    const c = this.ctx, now = this.t;
+    const o = c.createOscillator();
+    o.type = "sawtooth";
+    o.frequency.setValueAtTime(90, now);
+    o.frequency.exponentialRampToValueAtTime(650, now + 0.14);
+    const f = c.createBiquadFilter(); f.type = "lowpass"; f.frequency.value = 2200;
+    const g = c.createGain();
+    g.gain.setValueAtTime(0.0001, now);
+    g.gain.exponentialRampToValueAtTime(0.16, now + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, now + 0.18);
+    o.connect(f); f.connect(g); g.connect(this.bus);
+    o.start(now); o.stop(now + 0.2);
+  }
+
+  wormhole() {
+    if (!this.on) return;
+    const c = this.ctx, now = this.t;
+    const o = c.createOscillator();
+    o.type = "sine";
+    o.frequency.setValueAtTime(1200, now);
+    o.frequency.exponentialRampToValueAtTime(140, now + 0.4);
+    const g = c.createGain();
+    g.gain.setValueAtTime(0.0001, now);
+    g.gain.exponentialRampToValueAtTime(0.14, now + 0.05);
+    g.gain.exponentialRampToValueAtTime(0.0001, now + 0.45);
+    o.connect(g); g.connect(this.bus);
+    o.start(now); o.stop(now + 0.5);
+  }
+
+  shockwave(dist, viewRadius) {
+    if (!this.on) return;
+    const c = this.ctx, now = this.t;
+    const vol = this.atten(dist, viewRadius) * 0.22;
+    if (vol < 0.01) return;
+    const n = c.createBufferSource();
+    n.buffer = this.noise;
+    const f = c.createBiquadFilter(); f.type = "lowpass";
+    f.frequency.setValueAtTime(1800, now);
+    f.frequency.exponentialRampToValueAtTime(80, now + 0.35);
+    const g = c.createGain();
+    g.gain.setValueAtTime(vol, now);
+    g.gain.exponentialRampToValueAtTime(0.0001, now + 0.4);
+    n.connect(f); f.connect(g); g.connect(this.bus);
+    n.start(now); n.stop(now + 0.45);
+  }
+
+  supernova(dist, viewRadius) {
+    if (!this.on) return;
+    const c = this.ctx, now = this.t;
+    const vol = this.atten(dist, viewRadius) * 0.3;
+    if (vol < 0.01) return;
+    const o = c.createOscillator();
+    o.type = "sine";
+    o.frequency.setValueAtTime(50, now);
+    o.frequency.exponentialRampToValueAtTime(20, now + 1.2);
+    const g = c.createGain();
+    g.gain.setValueAtTime(vol, now);
+    g.gain.exponentialRampToValueAtTime(0.0001, now + 1.3);
+    o.connect(g); g.connect(this.bus);
+    o.start(now); o.stop(now + 1.35);
+    const n = c.createBufferSource();
+    n.buffer = this.noise;
+    const nf = c.createBiquadFilter(); nf.type = "highpass"; nf.frequency.value = 1200;
+    const ng = c.createGain();
+    ng.gain.setValueAtTime(vol * 0.5, now);
+    ng.gain.exponentialRampToValueAtTime(0.0001, now + 0.3);
+    n.connect(nf); nf.connect(ng); ng.connect(this.bus);
+    n.start(now); n.stop(now + 0.35);
+  }
 }
 
 
@@ -2562,6 +2795,7 @@ class Input {
     this.my = window.innerHeight / 2;
     this.moved = false;
     this.boost = false;
+    this.dash = false;
     this.keys = { up: false, down: false, left: false, right: false };
     const set = (x, y) => { this.mx = x; this.my = y; this.moved = true; };
     window.addEventListener("mousemove", e => set(e.clientX, e.clientY), { passive: true });
@@ -2586,6 +2820,12 @@ class Input {
         if (typing()) return;
         e.preventDefault();
         this.boost = true;
+        return;
+      }
+      if (e.code === "KeyE") {
+        if (typing()) return;
+        e.preventDefault();
+        this.dash = true;
         return;
       }
       const k = keyMap[e.code];
@@ -2654,6 +2894,7 @@ class Renderer {
     this.dpr = 1;
     this.shadowScale = 1;
     this.showMinimap = true;
+    this.pulses = [];
     this.stars = [];
     this.buildStarfield();
     this.resize();
@@ -2724,6 +2965,7 @@ class Renderer {
       else if (e.type === "planet") this.drawPlanet(ctx, e);
       else if (e.type === "rogue") this.drawRogue(ctx, e, game.time);
       else if (e.type === "power") this.drawPowerUp(ctx, e, game.time);
+      else if (e.type === "wormhole") this.drawWormhole(ctx, e, game.time);
     }
 
     ctx.globalCompositeOperation = "lighter";
@@ -2732,6 +2974,8 @@ class Renderer {
 
     const holes = game.players.slice().sort((a, b) => a.r - b.r);
     for (const p of holes) this.drawBlackHole(ctx, p, game.time);
+
+    this.drawPulses(ctx, game.time);
 
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
     this.drawVignette(ctx, cam.vw, cam.vh);
@@ -2871,6 +3115,48 @@ class Renderer {
     ctx.restore();
     ctx.globalCompositeOperation = "source-over";
     ctx.globalAlpha = 1;
+  }
+
+  spawnPulse(x, y, maxR, color, life) {
+    this.pulses.push({ x, y, maxR, color, life: life || 0.6, born: null });
+  }
+
+  drawPulses(ctx, time) {
+    for (const p of this.pulses) { if (p.born == null) p.born = time; }
+    this.pulses = this.pulses.filter(p => time - p.born < p.life);
+    if (!this.pulses.length) return;
+    ctx.save();
+    ctx.globalCompositeOperation = "lighter";
+    for (const p of this.pulses) {
+      const t = clamp((time - p.born) / p.life, 0, 1);
+      ctx.globalAlpha = (1 - t) * 0.7;
+      ctx.strokeStyle = p.color;
+      ctx.lineWidth = Math.max(1, 6 * (1 - t));
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.maxR * t, 0, TAU); ctx.stroke();
+    }
+    ctx.restore();
+    ctx.globalAlpha = 1;
+  }
+
+  drawWormhole(ctx, e, time) {
+    const r = e.r;
+    ctx.save();
+    ctx.translate(e.x, e.y);
+    ctx.globalCompositeOperation = "lighter";
+    const halo = ctx.createRadialGradient(0, 0, r * 0.3, 0, 0, r * 2.4);
+    halo.addColorStop(0, "rgba(160,108,255,0.55)");
+    halo.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = halo;
+    ctx.beginPath(); ctx.arc(0, 0, r * 2.4, 0, TAU); ctx.fill();
+    for (let k = 0; k < 3; k++) {
+      ctx.rotate(time * (k % 2 ? -1 : 1) * 0.8 + k);
+      ctx.strokeStyle = "rgba(200,170,255,0.7)";
+      ctx.lineWidth = Math.max(1, r * 0.09);
+      ctx.beginPath(); ctx.ellipse(0, 0, r * (0.5 + k * 0.28), r * (0.22 + k * 0.12), 0, 0, TAU * 0.78); ctx.stroke();
+    }
+    ctx.fillStyle = "#0d0616";
+    ctx.beginPath(); ctx.arc(0, 0, r * 0.4, 0, TAU); ctx.fill();
+    ctx.restore();
   }
 
   drawPowerUp(ctx, e, time) {
@@ -3202,7 +3488,7 @@ class HUD {
     this.fps = $("ui-fps"); this.ent = $("ui-ent");
     this.time = $("ui-time"); this.eaten = $("ui-eaten");
     this.board = $("ui-board"); this.feed = $("feed"); this.buffs = $("ui-buffs"); this.match = $("ui-match");
-    this.acc = 0; this.lastFeed = 0;
+    this.acc = 0; this.lastFeed = 0; this.bountyTargetId = null;
   }
 
   update(game, fps, dt) {
@@ -3241,6 +3527,14 @@ class HUD {
       for (const p of teamed) totals[p.team] += p.mass;
       boardHtml += '<div class="team-score"><span class="team-red">RED ' + fmt(totals[0]) +
         '</span> vs <span class="team-blue">BLUE ' + fmt(totals[1]) + '</span></div>';
+    }
+    const leader = top[0];
+    if (leader && leader.mass >= CFG.BOUNTY.MIN_MASS) {
+      this.bountyTargetId = leader.id;
+      const reward = Math.round(CFG.BOUNTY.BASE + leader.mass * CFG.BOUNTY.PER_MASS);
+      boardHtml += '<div class="bounty">BOUNTY ' + esc(leader.name) + ' &nbsp;' + fmt(reward) + '</div>';
+    } else {
+      this.bountyTargetId = null;
     }
     boardHtml += top.map((p, i) => {
       const tag = p.team != null ? '<span style="color:' + TEAM_COLORS[p.team] + '">' + TEAM_TAGS[p.team] + '</span> ' : "";
@@ -3339,7 +3633,7 @@ class NetworkController {
       const tint = msg.tint || "#fff";
       g.events.push({
         type: "absorb", x: msg.x, y: msg.y, r: msg.r, hole,
-        victim: { type: msg.isPlayer ? "player" : "food", r: msg.r, tint, color: tint }
+        victim: { id: msg.victimId, type: msg.isPlayer ? "player" : "food", r: msg.r, tint, color: tint }
       });
     } else if (msg.kind === "kill") {
       g.feed.unshift({ a: msg.a, b: msg.b, mine: msg.mine, victimIsMe: msg.victimIsMe, t: 6 });
@@ -3362,6 +3656,10 @@ class NetworkController {
       g.events.push({ type: "spawn", hole: this.entities.get(this.myId) || null });
     } else if (msg.kind === "power") {
       g.events.push({ type: "power", kind: msg.powerKind, hole: this.entities.get(this.myId) || null });
+    } else if (msg.kind === "dash" || msg.kind === "wormhole" || msg.kind === "slingshot") {
+      g.events.push({ type: msg.kind, x: msg.x, y: msg.y, hole: this.entities.get(msg.holeId) || null });
+    } else if (msg.kind === "shockwave" || msg.kind === "supernova") {
+      g.events.push({ type: msg.kind, x: msg.x, y: msg.y, r: msg.r });
     }
   }
 
@@ -3388,6 +3686,12 @@ class NetworkController {
     if (now - this.lastIntentAt < 33) return;
     this.lastIntentAt = now;
     this.ws.send(JSON.stringify({ t: "intent", x: Math.round(x), y: Math.round(y), boost: !!boost }));
+  }
+
+  sendDash() {
+    if (!this.ws || this.ws.readyState !== 1) return;
+    if (this.dead || this.game.state !== "playing") return;
+    this.ws.send(JSON.stringify({ t: "dash" }));
   }
 
   respawn() {
@@ -3602,6 +3906,9 @@ class PeerHost {
           m.player.controller.y = Number(msg.y) || 0;
           m.player.boost = !!msg.boost;
         }
+      } else if (msg.t === "dash") {
+        const m = this.members.get(conn);
+        if (m && !m.dead && m.player) m.player.tryDash(this.game);
       } else if (msg.t === "respawn") {
         this.respawn(conn);
       }
@@ -3746,6 +4053,10 @@ class PeerHost {
             time: game.time - ev.hole.spawnTime, absorbed: ev.hole.absorbed, rivalsEaten: ev.hole.rivalsEaten
           });
         }
+      } else if (ev.type === "dash" || ev.type === "wormhole" || ev.type === "slingshot") {
+        this.broadcastMsg({ t: "e", kind: ev.type, x: Math.round(ev.x), y: Math.round(ev.y), holeId: ev.hole.id });
+      } else if (ev.type === "shockwave" || ev.type === "supernova") {
+        this.broadcastMsg({ t: "e", kind: ev.type, x: Math.round(ev.x), y: Math.round(ev.y), r: Math.round(ev.r) });
       }
     }
   }
@@ -4275,7 +4586,15 @@ class PeerHost {
         audio.absorb(ev.r, d, camera.viewRadius, ev.victim && ev.victim.type === "player");
         if (ev.hole === game.local) camera.kick(clamp(ev.r / 90, 0.04, 0.9));
         if (net) game.spawnAbsorption({ x: ev.x, y: ev.y, r: ev.r, tint: ev.victim.tint }, ev.hole || { vx: 0, vy: 0 });
-        if (ev.hole === game.local && ev.victim && ev.victim.type === "player") bumpKillStreak();
+        if (ev.hole === game.local && ev.victim && ev.victim.type === "player") {
+          bumpKillStreak();
+          if (hud.bountyTargetId != null && ev.victim.id === hud.bountyTargetId) {
+            const reward = Math.round(CFG.BOUNTY.BASE + ev.r * ev.r * Math.PI * CFG.BOUNTY.PER_MASS);
+            PROG.addTokens(reward);
+            PROG.updateTokenUI();
+            setStatus("BOUNTY CLAIMED — +" + reward + " TOKENS", false);
+          }
+        }
       } else if (ev.type === "death") {
         audio.death();
         camera.kick(1.4);
@@ -4299,6 +4618,22 @@ class PeerHost {
           setPaused(false);
           resetKillStreak();
         }
+      } else if (ev.type === "dash") {
+        if (ev.hole === game.local) { audio.dash(); camera.kick(0.25); }
+      } else if (ev.type === "wormhole") {
+        if (ev.hole === game.local) { audio.wormhole(); camera.kick(0.3); }
+      } else if (ev.type === "slingshot") {
+        if (ev.hole === game.local) { audio.power("speed"); camera.kick(0.1); }
+      } else if (ev.type === "shockwave") {
+        const d = listener ? Math.hypot(ev.x - listener.x, ev.y - listener.y) : null;
+        audio.shockwave(d, camera.viewRadius);
+        renderer.spawnPulse(ev.x, ev.y, ev.r, "#ffb45e", 0.5);
+        if (d != null && d < camera.viewRadius * 1.3) camera.kick(clamp(0.5 - d / (camera.viewRadius * 2), 0.05, 0.5));
+      } else if (ev.type === "supernova") {
+        const d = listener ? Math.hypot(ev.x - listener.x, ev.y - listener.y) : null;
+        audio.supernova(d, camera.viewRadius);
+        renderer.spawnPulse(ev.x, ev.y, ev.r, "#ff6a3a", 1.1);
+        if (d != null && d < ev.r * 1.4) camera.kick(clamp(0.7 - d / (ev.r * 2), 0.1, 0.7));
       }
     }
     game.events.length = 0;
@@ -4337,6 +4672,14 @@ class PeerHost {
         while (game.local.trail.length > 52) game.local.trail.splice(0, 2);
       } else if (game.local.trail.length) {
         game.local.trail.length = 0;
+      }
+    }
+
+    if (input.dash) {
+      input.dash = false;
+      if (game.state === "playing" && game.local && !PAUSED) {
+        if (mode === "multi") { if (net && net.connected) net.sendDash(); }
+        else game.local.tryDash(game);
       }
     }
 
