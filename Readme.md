@@ -1,5 +1,7 @@
 # Blackhole.io
 
+Play it here: https://vrschool11.github.io/BlackHole/
+
 You're a black hole. Eat dust, then asteroids, then planets, then every other hole out
 there — real gravity pulls it all in, not some fake "bigger number wins" rule.
 
